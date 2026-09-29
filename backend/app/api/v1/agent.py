@@ -22,14 +22,16 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     rsc_content = generate_routeros_agent_script(token, server_url)
     return Response(content=rsc_content, media_type="text/plain")
 
-@router.post("/heartbeat")
-@router.get("/heartbeat")
+@router.api_route("/heartbeat", methods=["GET", "POST"])
 async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)):
-    """Flexible endpoint accepting JSON POST or Query params for maximum RouterOS compatibility"""
+    """Universal endpoint accepting GET query params or POST JSON for 100% RouterOS compatibility"""
     data = {}
-    try:
-        data = await request.json()
-    except Exception:
+    if request.method == "POST":
+        try:
+            data = await request.json()
+        except Exception:
+            data = dict(request.query_params)
+    else:
         data = dict(request.query_params)
 
     token = data.get("token") or request.query_params.get("token")
@@ -44,45 +46,46 @@ async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)
     r.status = "online"
     r.last_seen = datetime.utcnow()
 
-    # Safely extract metrics
-    try: r.cpu_load = float(data.get("cpu_load", 0.0))
-    except Exception: pass
+    # Extract metrics safely (supports GET keys 'cpu', 'ros', 'serial', etc.)
+    cpu_val = data.get("cpu") or data.get("cpu_load")
+    if cpu_val:
+        try: r.cpu_load = float(cpu_val)
+        except Exception: pass
 
-    try: r.memory_used_mb = float(data.get("memory_used_mb", 0.0))
-    except Exception: pass
+    mem_used = data.get("mem_used") or data.get("memory_used_mb")
+    if mem_used:
+        try: r.memory_used_mb = float(mem_used)
+        except Exception: pass
 
-    try: r.memory_total_mb = float(data.get("memory_total_mb", 0.0))
-    except Exception: pass
+    mem_total = data.get("mem_total") or data.get("memory_total_mb")
+    if mem_total:
+        try: r.memory_total_mb = float(mem_total)
+        except Exception: pass
 
-    try: r.disk_used_mb = float(data.get("disk_used_mb", 0.0))
-    except Exception: pass
+    ros_ver = data.get("ros") or data.get("routeros_version")
+    if ros_ver: r.routeros_version = str(ros_ver)
 
-    try: r.disk_total_mb = float(data.get("disk_total_mb", 0.0))
-    except Exception: pass
+    arch_val = data.get("arch") or data.get("architecture")
+    if arch_val: r.architecture = str(arch_val)
 
-    if data.get("routeros_version"): r.routeros_version = str(data.get("routeros_version"))
-    if data.get("architecture"): r.architecture = str(data.get("architecture"))
-    if data.get("board_name"): r.board_name = str(data.get("board_name"))
-    if data.get("serial_number"): r.serial_number = str(data.get("serial_number"))
-    if data.get("model_name"): r.model_name = str(data.get("model_name"))
-    if data.get("uptime"): r.uptime = str(data.get("uptime"))
-    
-    # Save IP if client IP header is available
+    board_val = data.get("board") or data.get("board_name")
+    if board_val: r.board_name = str(board_val)
+
+    serial_val = data.get("serial") or data.get("serial_number")
+    if serial_val: r.serial_number = str(serial_val)
+
+    model_val = data.get("model") or data.get("model_name")
+    if model_val: r.model_name = str(model_val)
+
+    uptime_val = data.get("uptime")
+    if uptime_val: r.uptime = str(uptime_val)
+
+    # Auto-detect Public IP of remote router
     client_ip = request.client.host if request.client else None
     if client_ip and client_ip != "127.0.0.1":
         r.host = client_ip
 
-    # Generate CPU high alert if cpu > 90%
-    if r.cpu_load > 90.0:
-        alert = Alert(
-            router_id=r.id,
-            alert_type="cpu_high",
-            message=f"High CPU load on {r.name}: {r.cpu_load}%",
-            severity="warning"
-        )
-        db.add(alert)
-
     db.commit()
-    logger.info(f"Received heartbeat from router '{r.name}' (ID: {r.id})")
+    logger.info(f"Received heartbeat from router '{r.name}' (Serial: {r.serial_number or 'N/A'}, IP: {r.host})")
 
     return {"status": "ok", "ack": True}

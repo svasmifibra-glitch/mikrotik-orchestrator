@@ -48,16 +48,6 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     :local usedMem ($totalMem - $freeMem)
     :if ($usedMem < 0) do={{ :set usedMem 0 }}
 
-    :local freeHdd 0
-    :local totalHdd 0
-    :do {{
-        :set freeHdd ([/system resource get free-hdd-space] / 1048576)
-        :set totalHdd ([/system resource get total-hdd-space] / 1048576)
-    }} on-error={{}}
-    
-    :local usedHdd ($totalHdd - $freeHdd)
-    :if ($usedHdd < 0) do={{ :set usedHdd 0 }}
-
     :local rosVer ""
     :do {{ :set rosVer [/system resource get version] }} on-error={{}}
     :local board ""
@@ -74,19 +64,9 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
         :set model [/system routerboard get model]
     }} on-error={{}}
 
-    # Build JSON Payload
-    :local jsonPayload "{{\\"token\\":\\"$token\\",\\"cpu_load\\":$cpu,\\"memory_used_mb\\":$usedMem,\\"memory_total_mb\\":$totalMem,\\"disk_used_mb\\":$usedHdd,\\"disk_total_mb\\":$totalHdd,\\"routeros_version\\":\\"$rosVer\\",\\"board_name\\":\\"$board\\",\\"architecture\\":\\"$arch\\",\\"uptime\\":\\"$uptime\\",\\"serial_number\\":\\"$serial\\",\\"model_name\\":\\"$model\\"}}"
-    
-    :log info ("Orchestrator Agent: Sending heartbeat for serial " . $serial)
-    
-    # Send Heartbeat via HTTP/HTTPS POST
+    # Send Heartbeat via Universal RouterOS GET fetch
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=yes dst-path="orchestrator_resp.txt"
-        
-        # Clean up response file after fetch
-        :if ([/file find name="orchestrator_resp.txt"] != "") do={{
-            /file remove orchestrator_resp.txt
-        }}
+        /tool fetch url=($serverUrl . "?token=" . $token . "&cpu=" . $cpu . "&mem_used=" . $usedMem . "&mem_total=" . $totalMem . "&ros=" . $rosVer . "&serial=" . $serial . "&board=" . $board . "&model=" . $model . "&arch=" . $arch . "&uptime=" . $uptime) mode={mode} keep-result=no
     }} on-error={{
         :log error "Orchestrator Agent: Failed to connect to orchestrator server."
     }}
