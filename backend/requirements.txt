@@ -5,6 +5,7 @@ alembic>=1.13.1
 pydantic>=2.5.3
 pydantic-settings>=2.1.0
 psycopg2-binary>=2.9.9
+psycopg[binary]>=3.1.18
 aiosqlite>=0.19.0
 httpx>=0.26.0
 paramiko>=3.4.0
