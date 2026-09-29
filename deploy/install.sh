@@ -53,16 +53,13 @@ fi
 
 cd "$INSTALL_DIR"
 
-# Detect IP non-interactively if stdin is a pipe, or prompt if interactive
-if [ -t 0 ]; then
-    echo -e "${YELLOW}Ingresa tu Nombre de Dominio o Dirección IP Pública de este VPS:${NC}"
-    read -p "Dominio / IP: " SERVER_DOMAIN
-fi
+# Custom Port configuration (default to 8080 if not specified)
+TARGET_PORT="${PORT:-8080}"
 
-if [ -z "$SERVER_DOMAIN" ]; then
-    SERVER_DOMAIN=$(curl -s https://api.ipify.org || curl -s ifconfig.me || echo "localhost")
-    echo -e "${GREEN}Usando IP pública detectada: $SERVER_DOMAIN${NC}"
-fi
+# Detect IP
+SERVER_DOMAIN=$(curl -s https://api.ipify.org || curl -s ifconfig.me || echo "localhost")
+echo -e "${GREEN}IP pública detectada: $SERVER_DOMAIN${NC}"
+echo -e "${GREEN}Puerto asignado para MikroTik Orchestrator: $TARGET_PORT${NC}"
 
 # Generate secure random secret keys
 SECRET_KEY=$(openssl rand -hex 32)
@@ -70,28 +67,28 @@ POSTGRES_PASS=$(openssl rand -hex 16)
 
 # Create environment configuration
 cat <<EOF > deploy/.env
-SERVER_HOST=http://$SERVER_DOMAIN
+HOST_PORT=$TARGET_PORT
+SERVER_HOST=http://$SERVER_DOMAIN:$TARGET_PORT
 SECRET_KEY=$SECRET_KEY
 POSTGRES_PASSWORD=$POSTGRES_PASS
 DATABASE_URL=postgresql://mikrotik:$POSTGRES_PASS@postgres:5432/mikrotik_orchestrator
 EOF
 
-echo -e "${GREEN}[3/5] Construyendo e iniciando contenedores Docker (FastAPI + Postgres + Nginx)...${NC}"
+echo -e "${GREEN}[3/5] Construyendo e iniciando contenedores Docker (FastAPI + Postgres + Nginx en puerto $TARGET_PORT)...${NC}"
 cd "$INSTALL_DIR/deploy"
 docker compose down --remove-orphans || true
 docker compose build --no-cache
 docker compose up -d
 
-echo -e "${GREEN}[4/5] Configurando Firewall UFW (Puertos 80 y 443)...${NC}"
-ufw allow 80/tcp || true
-ufw allow 443/tcp || true
+echo -e "${GREEN}[4/5] Configurando Firewall UFW (Puerto $TARGET_PORT)...${NC}"
+ufw allow $TARGET_PORT/tcp || true
 
 echo -e "${BLUE}=====================================================${NC}"
 echo -e "${GREEN} ¡INSTALACIÓN COMPLETADA EXITOSAMENTE! 🎉${NC}"
 echo -e "${BLUE}=====================================================${NC}"
 echo -e "Puedes acceder a la plataforma desde tu navegador:"
-echo -e " URL Plataforma:  ${YELLOW}http://$SERVER_DOMAIN${NC}"
-echo -e " Documentación:   ${YELLOW}http://$SERVER_DOMAIN/docs${NC}"
+echo -e " URL Plataforma:  ${YELLOW}http://$SERVER_DOMAIN:$TARGET_PORT${NC}"
+echo -e " Documentación:   ${YELLOW}http://$SERVER_DOMAIN:$TARGET_PORT/docs${NC}"
 echo -e ""
 echo -e " Credenciales por defecto de Administración:"
 echo -e " Usuario:         ${YELLOW}admin@mikrotik.cloud${NC}"
