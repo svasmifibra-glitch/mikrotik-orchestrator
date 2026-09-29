@@ -33,7 +33,7 @@ curl -sSL https://raw.githubusercontent.com/svasmifibra-glitch/mikrotik-orchestr
 
 Al finalizar la instalación, el script te mostrará:
 1. La URL de **Acceso Local (LAN)** (ej: `http://192.168.1.50:8080`).
-2. La URL de **Acceso Externo (WAN)** (ej: `http://38.199.156.3:8080`).
+2. La URL de **Acceso Externo (WAN)** (ej: `http://x.x.x.x:8080`).
 3. La **regla de NAT** lista para copiar y pegar en tu Router MikroTik Gateway principal:
    ```routeros
    /ip firewall nat add chain=dstnat action=dst-nat to-addresses=192.168.1.50 to-ports=8080 protocol=tcp dst-port=8080 comment="MikroTik Orchestrator NAT"
