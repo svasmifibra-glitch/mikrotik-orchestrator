@@ -81,7 +81,12 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     
     # Send Heartbeat via HTTP/HTTPS POST
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=no
+        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=yes dst-path="orchestrator_resp.txt"
+        
+        # Clean up response file after fetch
+        :if ([/file find name="orchestrator_resp.txt"] != "") do={{
+            /file remove orchestrator_resp.txt
+        }}
     }} on-error={{
         :log error "Orchestrator Agent: Failed to connect to orchestrator server."
     }}
