@@ -6,7 +6,7 @@
 
 set -e
 
-GREEN='\031[0;32m'
+GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -41,12 +41,26 @@ if ! docker compose version &> /dev/null; then
     apt-get install -y docker-compose-plugin
 fi
 
-# Prompt for domain / public IP
-echo -e "${YELLOW}Ingresa tu Nombre de Dominio o Dirección IP Pública de este VPS:${NC}"
-read -p "Dominio / IP: " SERVER_DOMAIN
+# Setup App Directory
+INSTALL_DIR="/opt/mikrotik-orchestrator"
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo -e "${GREEN}Clonando repositorio en $INSTALL_DIR...${NC}"
+    git clone https://github.com/svasmifibra-glitch/mikrotik-orchestrator.git "$INSTALL_DIR"
+else
+    echo -e "${GREEN}Actualizando repositorio en $INSTALL_DIR...${NC}"
+    cd "$INSTALL_DIR" && git pull || true
+fi
+
+cd "$INSTALL_DIR"
+
+# Detect IP non-interactively if stdin is a pipe, or prompt if interactive
+if [ -t 0 ]; then
+    echo -e "${YELLOW}Ingresa tu Nombre de Dominio o Dirección IP Pública de este VPS:${NC}"
+    read -p "Dominio / IP: " SERVER_DOMAIN
+fi
 
 if [ -z "$SERVER_DOMAIN" ]; then
-    SERVER_DOMAIN=$(curl -s ifconfig.me)
+    SERVER_DOMAIN=$(curl -s https://api.ipify.org || curl -s ifconfig.me || echo "localhost")
     echo -e "${GREEN}Usando IP pública detectada: $SERVER_DOMAIN${NC}"
 fi
 
@@ -63,7 +77,7 @@ DATABASE_URL=postgresql://mikrotik:$POSTGRES_PASS@postgres:5432/mikrotik_orchest
 EOF
 
 echo -e "${GREEN}[3/5] Construyendo e iniciando contenedores Docker (FastAPI + Postgres + Nginx)...${NC}"
-cd deploy
+cd "$INSTALL_DIR/deploy"
 docker compose down --remove-orphans || true
 docker compose build --no-cache
 docker compose up -d
