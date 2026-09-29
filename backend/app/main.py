@@ -8,11 +8,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.database import engine, Base, SessionLocal
+from app.core.database import engine, Base, SessionLocal, get_engine_and_session
 from app.core.security import get_password_hash
 from app.models.models import User, Router, Backup, Task, Alert
 from app.api.v1 import auth, routers, backups, tasks, agent, firmware, alerts
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
 app = FastAPI(
@@ -41,11 +42,13 @@ app.include_router(alerts.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
-    """Ensure database connection and default admin user initialization with retry logic"""
+    """Ensure database connection and default admin user initialization with fallback"""
+    global engine, SessionLocal
     db_connected = False
-    for attempt in range(10):
+    
+    for attempt in range(5):
         try:
-            logger.info(f"Connecting to database (attempt {attempt + 1}/10)...")
+            logger.info(f"Connecting to database (attempt {attempt + 1}/5)...")
             Base.metadata.create_all(bind=engine)
             
             db: Session = SessionLocal()
@@ -62,13 +65,32 @@ def startup_event():
                 logger.info(">>> Created default administrator: admin@mikrotik.cloud / admin123")
             db.close()
             db_connected = True
+            logger.info(">>> Primary Database initialized successfully!")
             break
         except Exception as e:
-            logger.warning(f"Database not ready yet ({e}). Retrying in 2 seconds...")
+            logger.warning(f"Primary database connection failed: {e}. Retrying in 2 seconds...")
             time.sleep(2)
-            
+
     if not db_connected:
-        logger.error("Could not connect to database after 10 retries.")
+        logger.warning("Primary PostgreSQL connection failed. Falling back to local SQLite database...")
+        try:
+            engine, SessionLocal = get_engine_and_session("sqlite:///./mikrotik_orchestrator.db")
+            Base.metadata.create_all(bind=engine)
+            db: Session = SessionLocal()
+            admin = db.query(User).filter(User.email == "admin@mikrotik.cloud").first()
+            if not admin:
+                admin = User(
+                    email="admin@mikrotik.cloud",
+                    hashed_password=get_password_hash("admin123"),
+                    full_name="System Administrator",
+                    role="admin"
+                )
+                db.add(admin)
+                db.commit()
+            db.close()
+            logger.info(">>> SQLite fallback database ready!")
+        except Exception as fallback_err:
+            logger.error(f"Fallback SQLite initialization error: {fallback_err}")
 
 # Mount Static directory for frontend bundle if present
 static_dir = os.path.join(os.path.dirname(__file__), "static")

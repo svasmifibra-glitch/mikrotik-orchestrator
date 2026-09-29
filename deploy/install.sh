@@ -70,11 +70,15 @@ echo -e "  - IP Privada (LAN interface):  ${YELLOW}$LOCAL_IP${NC}"
 echo -e "  - IP Pública (WAN / NAT):      ${YELLOW}$PUBLIC_IP${NC}"
 echo -e "  - Puerto Asignado:             ${YELLOW}$TARGET_PORT${NC}"
 
-# Generate secure random secret keys
-SECRET_KEY=$(openssl rand -hex 32)
-POSTGRES_PASS=$(openssl rand -hex 16)
+# Reuse existing SECRET_KEY or generate stable one
+if [ -f deploy/.env ]; then
+    source deploy/.env
+fi
 
-# Create environment configuration (using External Host for RouterOS provisioning callbacks)
+SECRET_KEY="${SECRET_KEY:-$(openssl rand -hex 32)}"
+POSTGRES_PASS="mikrotik_secure_db_pass_2026"
+
+# Create environment configuration
 cat <<EOF > deploy/.env
 HOST_PORT=$TARGET_PORT
 LOCAL_IP=$LOCAL_IP
