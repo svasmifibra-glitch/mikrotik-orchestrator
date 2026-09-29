@@ -52,13 +52,13 @@ mikrotik-orchestrator/
 En tu VPS (Ubuntu 20.04 / 22.04 / 24.04 o Debian 11/12), ejecuta como `root`:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/tu-usuario/mikrotik-orchestrator/main/deploy/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/svasmifibra-glitch/mikrotik-orchestrator/main/deploy/install.sh | bash
 ```
 
 O clonando el repositorio:
 
 ```bash
-git clone https://github.com/tu-usuario/mikrotik-orchestrator.git
+git clone https://github.com/svasmifibra-glitch/mikrotik-orchestrator.git
 cd mikrotik-orchestrator/deploy
 chmod +x install.sh
 sudo ./install.sh
