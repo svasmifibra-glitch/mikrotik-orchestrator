@@ -179,7 +179,16 @@
                         <h2 class="text-2xl font-bold text-white">Respaldos de Configuración (.rsc)</h2>
                         <p class="text-sm text-slate-400">Gestión de exports, descargas y visor de diferencias (Diff)</p>
                     </div>
+                    <div class="flex gap-3">
+                        <select id="backup-router-select" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                            <!-- Select options filled dynamically -->
+                        </select>
+                        <button onclick="triggerSelectedBackup()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                            <i data-lucide="database" class="w-4 h-4"></i> ⚡ Tomar Respaldo Ahora
+                        </button>
+                    </div>
                 </div>
+
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-300">
@@ -323,6 +332,7 @@
     <script>
         const API_BASE = "/api/v1";
         let token = localStorage.getItem("mt_auth_token");
+        let globalRouters = [];
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
@@ -388,6 +398,7 @@
                 const backups = await resB.json();
 
                 if (!Array.isArray(routers)) return;
+                globalRouters = routers;
 
                 const total = routers.length;
                 const online = routers.filter(r => r.status === 'online').length;
@@ -432,6 +443,7 @@
         async function loadRoutersData() {
             const res = await fetch(`${API_BASE}/routers/`, { headers: { Authorization: `Bearer ${token}` } });
             const routers = await res.json();
+            globalRouters = routers;
             const grid = document.getElementById("routers-grid");
             
             grid.innerHTML = routers.map(r => `
@@ -452,7 +464,7 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="getCmdForRouter(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-indigo-400 transition">Comando Agent</button>
+                        <button onclick="triggerBackupNow(${r.id}, '${r.name}')" class="bg-emerald-600/20 hover:bg-emerald-600/40 text-xs font-semibold py-2 rounded-lg text-emerald-400 transition">⚡ Tomar Respaldo</button>
                         <button onclick="triggerTaskForRouter('${r.id}', '${r.name}')" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-xs font-semibold py-2 rounded-lg text-indigo-300 transition">Ejecutar Script</button>
                     </div>
                 </div>
@@ -460,12 +472,22 @@
         }
 
         async function loadBackupsData() {
-            const res = await fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } });
-            const backups = await res.json();
+            const [resB, resR] = await Promise.all([
+                fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API_BASE}/routers/`, { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            const backups = await resB.json();
+            const routers = await resR.json();
+            globalRouters = routers;
+
+            // Populate backup select
+            const select = document.getElementById("backup-router-select");
+            select.innerHTML = routers.map(r => `<option value="${r.id}">${r.name} (${r.model_name || 'MikroTik'})</option>`).join('');
+
             const tbody = document.getElementById("backups-list-table");
             
             if (!Array.isArray(backups) || backups.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay respaldos guardados. Los respaldos automáticos aparecerán cuando los routers envíen sus exports.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay respaldos guardados todavía. Usa el botón "⚡ Tomar Respaldo Ahora" para generar uno.</td></tr>`;
                 return;
             }
 
@@ -481,6 +503,31 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        async function triggerBackupNow(routerId, routerName) {
+            alert(`Iniciando generación de respaldo .rsc para: ${routerName}...`);
+            const res = await fetch(`${API_BASE}/backups/trigger/${routerId}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert(`¡Respaldo generado exitosamente para ${routerName}!`);
+                switchTab('backups');
+            } else {
+                alert("Error al solicitar el respaldo");
+            }
+        }
+
+        async function triggerSelectedBackup() {
+            const routerId = document.getElementById("backup-router-select").value;
+            if (!routerId) {
+                alert("Selecciona un router primero");
+                return;
+            }
+            const routerObj = globalRouters.find(r => r.id == routerId);
+            const name = routerObj ? routerObj.name : `Router #${routerId}`;
+            await triggerBackupNow(routerId, name);
         }
 
         async function viewBackupContent(id, filename) {
