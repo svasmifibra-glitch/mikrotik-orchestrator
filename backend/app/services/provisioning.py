@@ -4,7 +4,8 @@ def generate_onboarding_command(token: str, server_url: str = None) -> str:
     """Returns 1-line RouterOS terminal command to copy/paste"""
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
     script_url = f"{base_url}/api/v1/agent/script/{token}"
-    return f'/tool fetch url="{script_url}" mode=https keep-result=yes dst-path="orchestrator_install.rsc"; /import orchestrator_install.rsc; /file remove orchestrator_install.rsc;'
+    mode = "https" if base_url.startswith("https") else "http"
+    return f'/tool fetch url="{script_url}" mode={mode} keep-result=yes dst-path="orchestrator_install.rsc"; /import orchestrator_install.rsc; /file remove orchestrator_install.rsc;'
 
 def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     """
@@ -14,6 +15,7 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
     hb_url = f"{base_url}/api/v1/agent/heartbeat"
     poll_seconds = settings.AGENT_POLL_INTERVAL
+    mode = "https" if base_url.startswith("https") else "http"
     
     script = f"""# =========================================================
 # MikroTik Cloud Orchestrator - Auto Provisioning Script
@@ -59,7 +61,7 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     
     # Send Heartbeat via HTTP/HTTPS POST
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token) http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=yes dst-path="orchestrator_response.txt"
+        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=yes dst-path="orchestrator_response.txt"
         
         # Check if response contains queued command to execute
         :if ([/file find name="orchestrator_response.txt"] != "") do={{
