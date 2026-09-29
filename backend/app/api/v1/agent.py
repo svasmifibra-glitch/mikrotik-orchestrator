@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.models import Router, Alert, Backup
 from app.services.provisioning import generate_routeros_agent_script
@@ -18,7 +19,12 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     if not r:
         raise HTTPException(status_code=404, detail="Invalid provision token")
     
-    server_url = str(request.base_url).rstrip('/')
+    # Priority: SERVER_HOST from environment, otherwise fallback to request URL
+    if settings.SERVER_HOST and settings.SERVER_HOST != "http://localhost:8080":
+        server_url = settings.SERVER_HOST.rstrip('/')
+    else:
+        server_url = str(request.base_url).rstrip('/')
+
     rsc_content = generate_routeros_agent_script(token, server_url)
     return Response(content=rsc_content, media_type="text/plain")
 
