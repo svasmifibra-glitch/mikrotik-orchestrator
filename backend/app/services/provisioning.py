@@ -48,25 +48,24 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     :local usedMem ($totalMem - $freeMem)
     :if ($usedMem < 0) do={{ :set usedMem 0 }}
 
+    # Clean RouterOS version string (remove spaces like ' (stable)')
     :local rosVer ""
     :do {{ :set rosVer [/system resource get version] }} on-error={{}}
-    :local board ""
-    :do {{ :set board [/system resource get board-name] }} on-error={{}}
-    :local arch ""
-    :do {{ :set arch [/system resource get architecture-name] }} on-error={{}}
-    :local uptime ""
-    :do {{ :set uptime [/system resource get uptime] }} on-error={{}}
-    
-    :local serial ""
-    :local model ""
-    :do {{
-        :set serial [/system routerboard get serial-number]
-        :set model [/system routerboard get model]
-    }} on-error={{}}
+    :local cleanRos $rosVer
+    :local spacePos [:find $rosVer " "]
+    :if ($spacePos > 0) do={{ :set cleanRos [:pick $rosVer 0 $spacePos] }}
 
-    # Send Heartbeat via Universal RouterOS GET fetch
+    :local serial ""
+    :do {{ :set serial [/system routerboard get serial-number] }} on-error={{}}
+    :if ($serial = "") do={{ :set serial "CHR" }}
+
+    :local model ""
+    :do {{ :set model [/system routerboard get model] }} on-error={{}}
+    :if ($model = "") do={{ :set model "RouterOS" }}
+
+    # Send Heartbeat via 100% Clean URL (No spaces or special characters)
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token . "&cpu=" . $cpu . "&mem_used=" . $usedMem . "&mem_total=" . $totalMem . "&ros=" . $rosVer . "&serial=" . $serial . "&board=" . $board . "&model=" . $model . "&arch=" . $arch . "&uptime=" . $uptime) mode={mode} keep-result=no
+        /tool fetch url=($serverUrl . "?token=" . $token . "&cpu=" . $cpu . "&mem_used=" . $usedMem . "&mem_total=" . $totalMem . "&ros=" . $cleanRos . "&serial=" . $serial . "&model=" . $model) mode={mode} keep-result=no
     }} on-error={{
         :log error "Orchestrator Agent: Failed to connect to orchestrator server."
     }}
