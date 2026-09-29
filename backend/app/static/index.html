@@ -55,7 +55,7 @@
                         <i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo-400"></i> Dashboard
                     </button>
                     <button onclick="switchTab('routers')" id="nav-routers" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
-                        <i data-lucide="router" class="w-4 h-4 text-indigo-400"></i> Equipos MikroTik
+                        <i data-lucide="router" class="w-4 h-4 text-indigo-400"></i> Flota de Routers
                     </button>
                     <button onclick="switchTab('backups')" id="nav-backups" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
                         <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i> Respaldos Config (.rsc)
@@ -89,7 +89,7 @@
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-2xl font-bold text-white">Panel General de Orquestación</h2>
-                        <p class="text-sm text-slate-400">Monitoreo en tiempo real de tus routers MikroTik</p>
+                        <p class="text-sm text-slate-400">Monitoreo y control centralizado de routers MikroTik RouterOS</p>
                     </div>
                     <button onclick="openAddRouterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
                         <i data-lucide="plus" class="w-4 h-4"></i> Agregar MikroTik
@@ -104,7 +104,7 @@
                             <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="router" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-total-routers" class="text-3xl font-bold text-white">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Registrados en la plataforma</p>
+                        <p class="text-xs text-slate-500 mt-1">Flota registrada</p>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                         <div class="flex justify-between items-start mb-4">
@@ -112,7 +112,7 @@
                             <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="wifi" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-online-routers" class="text-3xl font-bold text-emerald-400">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Comunicación activa</p>
+                        <p class="text-xs text-slate-500 mt-1">Conexión activa</p>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                         <div class="flex justify-between items-start mb-4">
@@ -120,46 +120,47 @@
                             <div class="p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i data-lucide="wifi-off" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-offline-routers" class="text-3xl font-bold text-rose-400">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Requieren atención</p>
+                        <p class="text-xs text-slate-500 mt-1">Sin reporte reciente</p>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                         <div class="flex justify-between items-start mb-4">
-                            <span class="text-xs font-semibold uppercase text-amber-400">Respaldos Totales</span>
+                            <span class="text-xs font-semibold uppercase text-amber-400">Respaldos Almacenados</span>
                             <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="database" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-total-backups" class="text-3xl font-bold text-amber-400">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Exportaciones .rsc almacenadas</p>
+                        <p class="text-xs text-slate-500 mt-1">Exportaciones .rsc guardadas</p>
                     </div>
                 </div>
 
                 <!-- Recent Routers Table -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Resumen de Equipos Recientes</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">Resumen de Equipos en Tiempo Real</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-300">
                             <thead class="text-xs uppercase text-slate-400 border-b border-slate-800">
                                 <tr>
                                     <th class="py-3 px-4">Nombre / Modelo</th>
                                     <th class="py-3 px-4">Estado</th>
-                                    <th class="py-3 px-4">Uso CPU</th>
+                                    <th class="py-3 px-4">Carga CPU</th>
                                     <th class="py-3 px-4">RouterOS</th>
+                                    <th class="py-3 px-4">Serie</th>
                                     <th class="py-3 px-4">Última Conexión</th>
                                 </tr>
                             </thead>
                             <tbody id="dashboard-routers-list">
-                                <tr><td colspan="5" class="py-6 text-center text-slate-500">Cargando equipos...</td></tr>
+                                <tr><td colspan="6" class="py-6 text-center text-slate-500">Cargando equipos...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 2: ROUTERS LIST -->
+            <!-- TAB 2: ROUTERS LIST & MANAGEMENT -->
             <section id="tab-routers" class="tab-content hidden">
                 <div class="flex items-center justify-between mb-8">
                     <div>
-                        <h2 class="text-2xl font-bold text-white">Inventario de Equipos MikroTik</h2>
-                        <p class="text-sm text-slate-400">Control individual y aprovisionamiento de routers</p>
+                        <h2 class="text-2xl font-bold text-white">Gestión de Equipos MikroTik</h2>
+                        <p class="text-sm text-slate-400">Administración individual, comandos y respaldos</p>
                     </div>
                     <button onclick="openAddRouterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
                         <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Router
@@ -171,11 +172,13 @@
                 </div>
             </section>
 
-            <!-- TAB 3: BACKUPS -->
+            <!-- TAB 3: BACKUPS & DIFF -->
             <section id="tab-backups" class="tab-content hidden">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white">Respaldos de Configuración (.rsc)</h2>
-                    <p class="text-sm text-slate-400">Historial de configuraciones y comparación de cambios (Diff)</p>
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Respaldos de Configuración (.rsc)</h2>
+                        <p class="text-sm text-slate-400">Gestión de exports, descargas y visor de diferencias (Diff)</p>
+                    </div>
                 </div>
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                     <div class="overflow-x-auto">
@@ -186,22 +189,22 @@
                                     <th class="py-3 px-4">Router ID</th>
                                     <th class="py-3 px-4">Tamaño</th>
                                     <th class="py-3 px-4">Fecha</th>
-                                    <th class="py-3 px-4">Acción</th>
+                                    <th class="py-3 px-4">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="backups-list-table">
-                                <tr><td colspan="5" class="py-6 text-center text-slate-500">Sin respaldos guardados</td></tr>
+                                <tr><td colspan="5" class="py-6 text-center text-slate-500">Cargando respaldos...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 4: TASKS -->
+            <!-- TAB 4: BATCH TASKS SCHEDULER -->
             <section id="tab-tasks" class="tab-content hidden">
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white">Ejecutor de Scripts y Tareas Masivas</h2>
-                    <p class="text-sm text-slate-400">Corre comandos RouterOS simultáneamente en múltiples routers</p>
+                    <h2 class="text-2xl font-bold text-white">Ejecutor Masivo de Scripts (Cloutik Task Scheduler)</h2>
+                    <p class="text-sm text-slate-400">Envío simultáneo de comandos RouterOS a 1 o múltiples routers</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -211,27 +214,37 @@
                         <form onsubmit="handleCreateTask(event)" class="space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1">Título de la Tarea</label>
-                                <input id="task-title" type="text" placeholder="Ej: Cambiar DNS primario a 1.1.1.1" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <input id="task-title" type="text" placeholder="Ej: Cambiar servidores DNS a 1.1.1.1" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Plantilla de Script Predefinido</label>
+                                <select onchange="applyScriptTemplate(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-indigo-400 font-semibold focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Seleccionar Plantilla (Opcional) --</option>
+                                    <option value="dns">Configurar DNS Primarios (1.1.1.1, 8.8.8.8)</option>
+                                    <option value="reboot">Reiniciar Router (/system reboot)</option>
+                                    <option value="export">Tomar Backup Export (.rsc)</option>
+                                    <option value="firewall">Agregar Regla Dropped Port 23 (Telnet)</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 mb-1">Equipos Objetivo</label>
                                 <select id="task-targets" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-                                    <option value="ALL">Todos los equipos (ALL)</option>
+                                    <option value="ALL">Todos los routers (ALL)</option>
                                     <option value="group:Default">Grupo Default</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">Script RouterOS (.rsc)</label>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Código Script RouterOS (.rsc)</label>
                                 <textarea id="task-script" rows="6" placeholder="/ip dns set servers=1.1.1.1,8.8.8.8" required class="w-full font-mono bg-slate-950 border border-slate-700 rounded-lg p-3 text-xs text-emerald-400 focus:outline-none focus:border-indigo-500"></textarea>
                             </div>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition">Ejecutar en Flota</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition">Ejecutar Tarea en Flota</button>
                         </form>
                     </div>
 
                     <!-- Tasks History -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                        <h3 class="text-lg font-bold text-white mb-4">Historial de Ejecuciones</h3>
-                        <div id="tasks-history-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        <h3 class="text-lg font-bold text-white mb-4">Historial y Resultados de Tareas</h3>
+                        <div id="tasks-history-list" class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
                             <!-- Render dynamically -->
                         </div>
                     </div>
@@ -241,24 +254,24 @@
             <!-- TAB 5: FIRMWARE -->
             <section id="tab-firmware" class="tab-content hidden">
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white">Gestión de Firmware RouterOS</h2>
-                    <p class="text-sm text-slate-400">Actualizaciones centralizadas de sistema para la flota</p>
+                    <h2 class="text-2xl font-bold text-white">Gestión y Actualización de Firmware</h2>
+                    <p class="text-sm text-slate-400">Actualizaciones centralizadas de RouterOS para toda la flota</p>
                 </div>
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-2xl">
                     <div class="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
                         <div>
                             <p class="text-xs text-slate-400 uppercase font-semibold">Versión Estable Recomendada</p>
-                            <p class="text-2xl font-bold text-emerald-400 mt-1">RouterOS 7.14.3</p>
+                            <p class="text-2xl font-bold text-emerald-400 mt-1">RouterOS 7.14.3 (Stable)</p>
                         </div>
                         <button onclick="triggerBatchUpgrade()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition flex items-center gap-2">
                             <i data-lucide="download-cloud" class="w-4 h-4"></i> Actualizar Flota Completa
                         </button>
                     </div>
 
-                    <h4 class="text-sm font-semibold text-slate-300 mb-3">Distribución de Versiones en Flota:</h4>
+                    <h4 class="text-sm font-semibold text-slate-300 mb-3">Distribución de Versiones de RouterOS:</h4>
                     <div id="firmware-distribution" class="space-y-3">
-                        <p class="text-xs text-slate-500">Cargando resumen...</p>
+                        <p class="text-xs text-slate-500">Cargando resumen de versiones...</p>
                     </div>
                 </div>
             </section>
@@ -286,12 +299,23 @@
             </form>
 
             <div id="onboarding-command-container" class="hidden mt-6 pt-6 border-t border-slate-800">
-                <p class="text-xs font-semibold text-emerald-400 mb-2">¡Router Creado! Copia este comando en el Terminal del MikroTik:</p>
+                <p class="text-xs font-semibold text-emerald-400 mb-2">¡Router Creado! Copia este comando en el Terminal de Winbox del MikroTik:</p>
                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex items-center justify-between font-mono text-xs text-amber-300 overflow-x-auto">
                     <span id="onboarding-cmd-text">/tool fetch...</span>
                     <button onclick="copyOnboardingCommand()" class="ml-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1 rounded text-xs font-sans">Copiar</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- VIEW BACKUP RSC MODAL -->
+    <div id="view-backup-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="backup-modal-title" class="text-lg font-bold text-white">Contenido del Respaldo (.rsc)</h3>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <pre id="backup-modal-content" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-emerald-400 overflow-y-auto whitespace-pre-wrap leading-relaxed"></pre>
         </div>
     </div>
 
@@ -356,39 +380,47 @@
 
         async function loadDashboardData() {
             try {
-                const res = await fetch(`${API_BASE}/routers/`, { headers: { Authorization: `Bearer ${token}` } });
-                const routers = await res.json();
+                const [resR, resB] = await Promise.all([
+                    fetch(`${API_BASE}/routers/`, { headers: { Authorization: `Bearer ${token}` } }),
+                    fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+                const routers = await resR.json();
+                const backups = await resB.json();
+
                 if (!Array.isArray(routers)) return;
 
                 const total = routers.length;
                 const online = routers.filter(r => r.status === 'online').length;
                 const offline = routers.filter(r => r.status === 'offline' || r.status === 'unprovisioned').length;
+                const totalBackups = Array.isArray(backups) ? backups.length : 0;
 
                 document.getElementById("kpi-total-routers").innerText = total;
                 document.getElementById("kpi-online-routers").innerText = online;
                 document.getElementById("kpi-offline-routers").innerText = offline;
+                document.getElementById("kpi-total-backups").innerText = totalBackups;
 
                 const tbody = document.getElementById("dashboard-routers-list");
                 if (routers.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay routers agregados todavía.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No hay routers agregados todavía.</td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = routers.map(r => `
                     <tr class="border-b border-slate-800/50 hover:bg-slate-800/30">
-                        <td class="py-3.5 px-4 font-semibold text-white">${r.name} <span class="text-xs font-normal text-slate-500">(${r.model_name || 'N/A'})</span></td>
+                        <td class="py-3.5 px-4 font-semibold text-white">${r.name} <span class="text-xs font-normal text-slate-500">(${r.model_name || 'MikroTik'})</span></td>
                         <td class="py-3.5 px-4">
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${r.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'}">${r.status}</span>
                         </td>
                         <td class="py-3.5 px-4">
                             <div class="flex items-center gap-2">
-                                <div class="w-24 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden">
                                     <div class="bg-indigo-500 h-full" style="width: ${r.cpu_load}%"></div>
                                 </div>
-                                <span class="text-xs">${r.cpu_load}%</span>
+                                <span class="text-xs font-semibold">${r.cpu_load}%</span>
                             </div>
                         </td>
-                        <td class="py-3.5 px-4 text-xs text-slate-400">${r.routeros_version || 'v7.x'}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.routeros_version || 'v7.x'}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.serial_number || 'N/A'}</td>
                         <td class="py-3.5 px-4 text-xs text-slate-500">${r.last_seen ? new Date(r.last_seen).toLocaleString() : 'Nunca'}</td>
                     </tr>
                 `).join('');
@@ -416,11 +448,135 @@
                         <div class="flex justify-between text-slate-400"><span>Serie:</span> <span class="text-slate-200 font-mono">${r.serial_number || 'N/A'}</span></div>
                         <div class="flex justify-between text-slate-400"><span>Versión:</span> <span class="text-slate-200 font-mono">${r.routeros_version || 'v7.x'}</span></div>
                         <div class="flex justify-between text-slate-400"><span>Carga CPU:</span> <span class="text-slate-200 font-semibold">${r.cpu_load}%</span></div>
+                        <div class="flex justify-between text-slate-400"><span>Uptime:</span> <span class="text-slate-200 font-mono">${r.uptime || 'N/A'}</span></div>
                     </div>
 
-                    <button onclick="getCmdForRouter(${r.id})" class="w-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-indigo-400 transition">Ver Comando Aprovisionamiento</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="getCmdForRouter(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-indigo-400 transition">Comando Agent</button>
+                        <button onclick="triggerTaskForRouter('${r.id}', '${r.name}')" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-xs font-semibold py-2 rounded-lg text-indigo-300 transition">Ejecutar Script</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        async function loadBackupsData() {
+            const res = await fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } });
+            const backups = await res.json();
+            const tbody = document.getElementById("backups-list-table");
+            
+            if (!Array.isArray(backups) || backups.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay respaldos guardados. Los respaldos automáticos aparecerán cuando los routers envíen sus exports.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = backups.map(b => `
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/30">
+                    <td class="py-3.5 px-4 font-mono text-xs text-white">${b.filename}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-400">Router #${b.router_id}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-400">${(b.file_size / 1024).toFixed(1)} KB</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-500">${new Date(b.created_at).toLocaleString()}</td>
+                    <td class="py-3.5 px-4 flex gap-2">
+                        <button onclick="viewBackupContent(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 rounded text-xs font-semibold">Ver .rsc</button>
+                        <a href="${API_BASE}/backups/${b.id}/download" download class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-semibold">Descargar</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function viewBackupContent(id, filename) {
+            const res = await fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } });
+            const backups = await res.json();
+            const b = backups.find(x => x.id === id);
+            if (b) {
+                document.getElementById("backup-modal-title").innerText = `Contenido de: ${filename}`;
+                document.getElementById("backup-modal-content").innerText = b.content_rsc || "# Sin contenido guardado";
+                document.getElementById("view-backup-modal").classList.remove("hidden");
+            }
+        }
+
+        function closeBackupModal() {
+            document.getElementById("view-backup-modal").classList.add("hidden");
+        }
+
+        function applyScriptTemplate(type) {
+            const textarea = document.getElementById("task-script");
+            if (type === 'dns') {
+                textarea.value = "/ip dns set servers=1.1.1.1,8.8.8.8 allow-remote-requests=yes";
+            } else if (type === 'reboot') {
+                textarea.value = "/system reboot";
+            } else if (type === 'export') {
+                textarea.value = "/export hide-sensitive file=orchestrator_backup";
+            } else if (type === 'firewall') {
+                textarea.value = "/ip firewall filter add chain=input protocol=tcp dst-port=23 action=drop comment=\"Block Telnet Port 23\"";
+            }
+        }
+
+        async function handleCreateTask(e) {
+            e.preventDefault();
+            const title = document.getElementById("task-title").value;
+            const target_routers = document.getElementById("task-targets").value;
+            const script_content = document.getElementById("task-script").value;
+
+            const res = await fetch(`${API_BASE}/tasks/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ title, target_routers, script_content })
+            });
+
+            if (res.ok) {
+                alert("¡Tarea masiva creada y enviada para ejecución!");
+                document.getElementById("task-title").value = "";
+                document.getElementById("task-script").value = "";
+                loadTasksData();
+            }
+        }
+
+        async function loadTasksData() {
+            const res = await fetch(`${API_BASE}/tasks/`, { headers: { Authorization: `Bearer ${token}` } });
+            const tasks = await res.json();
+            const container = document.getElementById("tasks-history-list");
+            
+            if (!Array.isArray(tasks) || tasks.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">No hay tareas creadas todavía.</p>`;
+                return;
+            }
+
+            container.innerHTML = tasks.map(t => `
+                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-white text-xs">${t.title}</h4>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-indigo-500/10 text-indigo-400'}">${t.status}</span>
+                    </div>
+                    <pre class="font-mono text-[10px] text-slate-400 bg-slate-900 p-2 rounded mb-2 overflow-x-auto">${t.script_content}</pre>
+                    <p class="text-[10px] text-slate-500">Objetivo: <span class="text-slate-300 font-semibold">${t.target_routers}</span> | Creado: ${new Date(t.created_at).toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        async function loadFirmwareData() {
+            const res = await fetch(`${API_BASE}/firmware/summary`, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            const container = document.getElementById("firmware-distribution");
+            
+            const dist = data.version_distribution || {};
+            container.innerHTML = Object.entries(dist).map(([ver, count]) => `
+                <div class="flex justify-between items-center p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+                    <span class="font-mono text-slate-200 font-semibold">RouterOS ${ver}</span>
+                    <span class="px-2.5 py-1 bg-slate-800 text-indigo-400 font-bold rounded-lg">${count} equipos</span>
+                </div>
+            `).join('');
+        }
+
+        async function triggerBatchUpgrade() {
+            if (!confirm("¿Deseas enviar la tarea de actualización masiva a toda la flota?")) return;
+            const res = await fetch(`${API_BASE}/firmware/batch-upgrade`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert("¡Tarea de actualización de firmware masiva enviada!");
+                switchTab('tasks');
+            }
         }
 
         async function handleCreateRouter(e) {
@@ -443,6 +599,12 @@
             document.getElementById("onboarding-cmd-text").innerText = data.command;
             document.getElementById("onboarding-command-container").classList.remove("hidden");
             document.getElementById("add-router-modal").classList.remove("hidden");
+        }
+
+        function triggerTaskForRouter(id, name) {
+            switchTab('tasks');
+            document.getElementById("task-targets").value = id;
+            document.getElementById("task-title").value = `Ejecutar script en ${name}`;
         }
 
         function copyOnboardingCommand() {
