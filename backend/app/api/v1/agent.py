@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
+import logging
 
 from app.core.database import get_db
 from app.models.models import Router, Alert, Backup
-from app.schemas.schemas import HeartbeatPayload
 from app.services.provisioning import generate_routeros_agent_script
+
+logger = logging.getLogger("agent")
 
 router = APIRouter(prefix="/agent", tags=["Agent RouterOS"])
 
@@ -21,27 +23,54 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     return Response(content=rsc_content, media_type="text/plain")
 
 @router.post("/heartbeat")
-def handle_agent_heartbeat(payload: HeartbeatPayload, db: Session = Depends(get_db)):
-    """Receives periodic metrics and heartbeat from MikroTik router script"""
-    r = db.query(Router).filter(Router.provision_token == payload.token).first()
+@router.get("/heartbeat")
+async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)):
+    """Flexible endpoint accepting JSON POST or Query params for maximum RouterOS compatibility"""
+    data = {}
+    try:
+        data = await request.json()
+    except Exception:
+        data = dict(request.query_params)
+
+    token = data.get("token") or request.query_params.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing token")
+
+    r = db.query(Router).filter(Router.provision_token == token).first()
     if not r:
         raise HTTPException(status_code=404, detail="Unknown router token")
 
-    # Update telemetry
+    # Update state & last_seen
     r.status = "online"
     r.last_seen = datetime.utcnow()
-    if payload.cpu_load is not None: r.cpu_load = payload.cpu_load
-    if payload.memory_used_mb is not None: r.memory_used_mb = payload.memory_used_mb
-    if payload.memory_total_mb is not None: r.memory_total_mb = payload.memory_total_mb
-    if payload.disk_used_mb is not None: r.disk_used_mb = payload.disk_used_mb
-    if payload.disk_total_mb is not None: r.disk_total_mb = payload.disk_total_mb
-    if payload.routeros_version: r.routeros_version = payload.routeros_version
-    if payload.architecture: r.architecture = payload.architecture
-    if payload.board_name: r.board_name = payload.board_name
-    if payload.serial_number: r.serial_number = payload.serial_number
-    if payload.model_name: r.model_name = payload.model_name
-    if payload.uptime: r.uptime = payload.uptime
-    if payload.public_ip: r.host = payload.public_ip
+
+    # Safely extract metrics
+    try: r.cpu_load = float(data.get("cpu_load", 0.0))
+    except Exception: pass
+
+    try: r.memory_used_mb = float(data.get("memory_used_mb", 0.0))
+    except Exception: pass
+
+    try: r.memory_total_mb = float(data.get("memory_total_mb", 0.0))
+    except Exception: pass
+
+    try: r.disk_used_mb = float(data.get("disk_used_mb", 0.0))
+    except Exception: pass
+
+    try: r.disk_total_mb = float(data.get("disk_total_mb", 0.0))
+    except Exception: pass
+
+    if data.get("routeros_version"): r.routeros_version = str(data.get("routeros_version"))
+    if data.get("architecture"): r.architecture = str(data.get("architecture"))
+    if data.get("board_name"): r.board_name = str(data.get("board_name"))
+    if data.get("serial_number"): r.serial_number = str(data.get("serial_number"))
+    if data.get("model_name"): r.model_name = str(data.get("model_name"))
+    if data.get("uptime"): r.uptime = str(data.get("uptime"))
+    
+    # Save IP if client IP header is available
+    client_ip = request.client.host if request.client else None
+    if client_ip and client_ip != "127.0.0.1":
+        r.host = client_ip
 
     # Generate CPU high alert if cpu > 90%
     if r.cpu_load > 90.0:
@@ -53,18 +82,7 @@ def handle_agent_heartbeat(payload: HeartbeatPayload, db: Session = Depends(get_
         )
         db.add(alert)
 
-    # Save RSC config backup if provided
-    if payload.export_rsc:
-        b = Backup(
-            router_id=r.id,
-            backup_type="rsc",
-            filename=f"auto_backup_{r.name}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.rsc",
-            file_size=len(payload.export_rsc),
-            content_rsc=payload.export_rsc
-        )
-        db.add(b)
-
     db.commit()
+    logger.info(f"Received heartbeat from router '{r.name}' (ID: {r.id})")
 
-    # Response to router - can return commands if queued
     return {"status": "ok", "ack": True}

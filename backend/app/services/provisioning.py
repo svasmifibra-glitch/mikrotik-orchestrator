@@ -34,18 +34,38 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     :local token "{token}"
     :local serverUrl "{hb_url}"
     
-    # Collect System Metrics
-    :local cpu [/system resource get cpu-load]
-    :local freeMem ([/system resource get free-memory] / 1048576)
-    :local totalMem ([/system resource get total-memory] / 1048576)
-    :local freeHdd ([/system resource get free-hdd-space] / 1048576)
-    :local totalHdd ([/system resource get total-hdd-space] / 1048576)
+    # Collect System Metrics safely
+    :local cpu 0
+    :do {{ :set cpu [/system resource get cpu-load] }} on-error={{}}
+    
+    :local freeMem 0
+    :local totalMem 0
+    :do {{ 
+        :set freeMem ([/system resource get free-memory] / 1048576)
+        :set totalMem ([/system resource get total-memory] / 1048576)
+    }} on-error={{}}
+    
     :local usedMem ($totalMem - $freeMem)
+    :if ($usedMem < 0) do={{ :set usedMem 0 }}
+
+    :local freeHdd 0
+    :local totalHdd 0
+    :do {{
+        :set freeHdd ([/system resource get free-hdd-space] / 1048576)
+        :set totalHdd ([/system resource get total-hdd-space] / 1048576)
+    }} on-error={{}}
+    
     :local usedHdd ($totalHdd - $freeHdd)
-    :local rosVer [/system resource get version]
-    :local board [/system resource get board-name]
-    :local arch [/system resource get architecture-name]
-    :local uptime [/system resource get uptime]
+    :if ($usedHdd < 0) do={{ :set usedHdd 0 }}
+
+    :local rosVer ""
+    :do {{ :set rosVer [/system resource get version] }} on-error={{}}
+    :local board ""
+    :do {{ :set board [/system resource get board-name] }} on-error={{}}
+    :local arch ""
+    :do {{ :set arch [/system resource get architecture-name] }} on-error={{}}
+    :local uptime ""
+    :do {{ :set uptime [/system resource get uptime] }} on-error={{}}
     
     :local serial ""
     :local model ""
@@ -61,20 +81,7 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     
     # Send Heartbeat via HTTP/HTTPS POST
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field="Content-Type: application/json" http-data=$jsonPayload keep-result=yes dst-path="orchestrator_response.txt"
-        
-        # Check if response contains queued command to execute
-        :if ([/file find name="orchestrator_response.txt"] != "") do={{
-            :local resp [/file get orchestrator_response.txt contents]
-            /file remove orchestrator_response.txt
-            
-            # Execute queued command if returned
-            :if ($resp != "" && $resp != "{{}}" && [:find $resp "cmd:"] = 0) do={{
-                :local cmd [:pick $resp 4 [:len $resp]]
-                :log warning ("Orchestrator Agent: Executing remote task script...")
-                :execute script=$cmd
-            }}
-        }}
+        /tool fetch url=($serverUrl . "?token=" . $token) mode={mode} http-method=post http-header-field={{"Content-Type: application/json"}} http-data=$jsonPayload keep-result=no
     }} on-error={{
         :log error "Orchestrator Agent: Failed to connect to orchestrator server."
     }}
