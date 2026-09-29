@@ -1,4 +1,6 @@
 import os
+import time
+import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,8 +13,7 @@ from app.core.security import get_password_hash
 from app.models.models import User, Router, Backup, Task, Alert
 from app.api.v1 import auth, routers, backups, tasks, agent, firmware, alerts
 
-# Create database tables automatically
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger("main")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,22 +41,34 @@ app.include_router(alerts.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():
-    """Ensure default admin user exists"""
-    db: Session = SessionLocal()
-    try:
-        admin = db.query(User).filter(User.email == "admin@mikrotik.cloud").first()
-        if not admin:
-            admin = User(
-                email="admin@mikrotik.cloud",
-                hashed_password=get_password_hash("admin123"),
-                full_name="System Administrator",
-                role="admin"
-            )
-            db.add(admin)
-            db.commit()
-            print(">>> Created default administrator: admin@mikrotik.cloud / admin123")
-    finally:
-        db.close()
+    """Ensure database connection and default admin user initialization with retry logic"""
+    db_connected = False
+    for attempt in range(10):
+        try:
+            logger.info(f"Connecting to database (attempt {attempt + 1}/10)...")
+            Base.metadata.create_all(bind=engine)
+            
+            db: Session = SessionLocal()
+            admin = db.query(User).filter(User.email == "admin@mikrotik.cloud").first()
+            if not admin:
+                admin = User(
+                    email="admin@mikrotik.cloud",
+                    hashed_password=get_password_hash("admin123"),
+                    full_name="System Administrator",
+                    role="admin"
+                )
+                db.add(admin)
+                db.commit()
+                logger.info(">>> Created default administrator: admin@mikrotik.cloud / admin123")
+            db.close()
+            db_connected = True
+            break
+        except Exception as e:
+            logger.warning(f"Database not ready yet ({e}). Retrying in 2 seconds...")
+            time.sleep(2)
+            
+    if not db_connected:
+        logger.error("Could not connect to database after 10 retries.")
 
 # Mount Static directory for frontend bundle if present
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -64,7 +77,6 @@ if os.path.exists(static_dir):
 
 @app.get("/", response_class=HTMLResponse)
 def root():
-    # If static index.html exists, serve it, otherwise render quick dashboard welcome page
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -84,10 +96,6 @@ def root():
             <p class="text-slate-400 mb-6">Plataforma centralizada para gestión, monitoreo y actualización masiva de routers MikroTik RouterOS.</p>
             <div class="flex gap-4 justify-center">
                 <a href="/docs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-semibold transition">Documentación Swagger API</a>
-                <a href="/api/v1/routers" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-semibold transition">API Routers</a>
-            </div>
-            <div class="mt-8 text-xs text-slate-500 border-t border-slate-700 pt-4">
-                Default Credentials: <b>admin@mikrotik.cloud</b> / <b>admin123</b>
             </div>
         </div>
     </body>
