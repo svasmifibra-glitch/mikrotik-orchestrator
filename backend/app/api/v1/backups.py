@@ -10,7 +10,8 @@ from app.models.models import Backup, Router, Task
 from app.schemas.schemas import BackupOut
 from app.services.mikrotik_client import MikroTikClient
 from app.services.provisioning import generate_instant_backup_command
-from app.api.v1.auth import get_current_user
+from app.services.onedrive_service import OneDriveService
+from app.api.v1.auth import get_current_user, get_current_user_flexible
 
 router = APIRouter(prefix="/backups", tags=["Backups"])
 
@@ -46,6 +47,12 @@ async def trigger_manual_backup(router_id: int, request: Request, db: Session = 
             r.last_backup_at = datetime.utcnow()
             db.commit()
             db.refresh(b)
+
+            try:
+                OneDriveService.save_physical_backup(r.name, b.filename, content)
+            except Exception:
+                pass
+
             return {
                 "status": "completed",
                 "message": "Respaldo extraído exitosamente vía conexión directa.",
@@ -69,14 +76,16 @@ async def trigger_manual_backup(router_id: int, request: Request, db: Session = 
     }
 
 @router.get("/{backup_id}/download")
-def download_backup(backup_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def download_backup(backup_id: int, request: Request, token: Optional[str] = None, db: Session = Depends(get_db)):
+    """Download the .rsc backup file. Supports Bearer header and ?token= query parameter"""
+    _ = get_current_user_flexible(request=request, token=token, db=db)
     b = db.query(Backup).filter(Backup.id == backup_id).first()
     if not b:
         raise HTTPException(status_code=404, detail="Backup not found")
     
     return Response(
         content=b.content_rsc or "",
-        media_type="application/text",
+        media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{b.filename}"'}
     )
 

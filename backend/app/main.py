@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal, get_engine_and_session
 from app.core.security import get_password_hash
 from app.models.models import User, Router, Backup, Task, Alert
-from app.api.v1 import auth, routers, backups, tasks, agent, firmware, alerts
+from app.api.v1 import auth, routers, backups, tasks, agent, firmware, alerts, onedrive
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -39,6 +39,7 @@ app.include_router(tasks.router, prefix=settings.API_V1_STR)
 app.include_router(agent.router, prefix=settings.API_V1_STR)
 app.include_router(firmware.router, prefix=settings.API_V1_STR)
 app.include_router(alerts.router, prefix=settings.API_V1_STR)
+app.include_router(onedrive.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def startup_event():

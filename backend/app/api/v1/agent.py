@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.models import Router, Alert, Backup, Task
 from app.services.provisioning import generate_routeros_agent_script
+from app.services.onedrive_service import OneDriveService
 
 logger = logging.getLogger("agent")
 
@@ -192,6 +193,12 @@ async def upload_backup(token: str, request: Request, db: Session = Depends(get_
 
     db.commit()
     logger.info(f"✅ Real backup saved for '{r.name}': {filename} ({len(body_bytes)} bytes)")
+
+    try:
+        OneDriveService.save_physical_backup(r.name, filename, content_str)
+    except Exception as e:
+        logger.error(f"Error saving physical backup for OneDrive: {e}")
+
     return {"status": "ok", "filename": filename, "size": len(body_bytes)}
 
 @router.api_route("/heartbeat", methods=["GET", "POST"])
