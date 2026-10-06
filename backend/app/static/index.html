@@ -46,7 +46,7 @@
                     <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-lg text-white">⚡</div>
                     <div>
                         <h1 class="font-bold text-sm text-white leading-tight">MikroTik Cloud</h1>
-                        <span class="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Orchestrator v1.0</span>
+                        <span class="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Orchestrator v2.0</span>
                     </div>
                 </div>
 
@@ -58,13 +58,16 @@
                         <i data-lucide="router" class="w-4 h-4 text-indigo-400"></i> Flota de Routers
                     </button>
                     <button onclick="switchTab('backups')" id="nav-backups" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
-                        <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i> Respaldos Config (.rsc)
+                        <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i> Respaldos Config (.rsc)
                     </button>
                     <button onclick="switchTab('tasks')" id="nav-tasks" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
                         <i data-lucide="terminal" class="w-4 h-4 text-indigo-400"></i> Ejecución Masiva
                     </button>
+                    <button onclick="switchTab('security')" id="nav-security" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i> Seguridad & Hardening
+                    </button>
                     <button onclick="switchTab('firmware')" id="nav-firmware" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
-                        <i data-lucide="arrow-up-circle" class="w-4 h-4 text-indigo-400"></i> Actualizaciones Firmware
+                        <i data-lucide="arrow-up-circle" class="w-4 h-4 text-indigo-400"></i> Firmware RouterOS
                     </button>
                 </nav>
             </div>
@@ -89,7 +92,7 @@
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-2xl font-bold text-white">Panel General de Orquestación</h2>
-                        <p class="text-sm text-slate-400">Monitoreo y control centralizado de routers MikroTik RouterOS</p>
+                        <p class="text-sm text-slate-400">Monitoreo y control centralizado de routers MikroTik RouterOS (Estilo Cloutik)</p>
                     </div>
                     <button onclick="openAddRouterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
                         <i data-lucide="plus" class="w-4 h-4"></i> Agregar MikroTik
@@ -112,7 +115,7 @@
                             <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="wifi" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-online-routers" class="text-3xl font-bold text-emerald-400">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Conexión activa</p>
+                        <p class="text-xs text-slate-500 mt-1">Conexión activa y poller 60s</p>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                         <div class="flex justify-between items-start mb-4">
@@ -124,17 +127,17 @@
                     </div>
                     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
                         <div class="flex justify-between items-start mb-4">
-                            <span class="text-xs font-semibold uppercase text-amber-400">Respaldos Almacenados</span>
+                            <span class="text-xs font-semibold uppercase text-amber-400">Respaldos .RSC</span>
                             <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="database" class="w-5 h-5"></i></div>
                         </div>
                         <p id="kpi-total-backups" class="text-3xl font-bold text-amber-400">0</p>
-                        <p class="text-xs text-slate-500 mt-1">Exportaciones .rsc guardadas</p>
+                        <p class="text-xs text-slate-500 mt-1">Configuraciones en la nube</p>
                     </div>
                 </div>
 
                 <!-- Recent Routers Table -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Resumen de Equipos en Tiempo Real</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">Estado de Equipos en Tiempo Real</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-300">
                             <thead class="text-xs uppercase text-slate-400 border-b border-slate-800">
@@ -143,8 +146,8 @@
                                     <th class="py-3 px-4">Estado</th>
                                     <th class="py-3 px-4">Carga CPU</th>
                                     <th class="py-3 px-4">RouterOS</th>
-                                    <th class="py-3 px-4">Serie</th>
-                                    <th class="py-3 px-4">Última Conexión</th>
+                                    <th class="py-3 px-4">Serie / IP</th>
+                                    <th class="py-3 px-4">Último Reporte</th>
                                 </tr>
                             </thead>
                             <tbody id="dashboard-routers-list">
@@ -159,8 +162,8 @@
             <section id="tab-routers" class="tab-content hidden">
                 <div class="flex items-center justify-between mb-8">
                     <div>
-                        <h2 class="text-2xl font-bold text-white">Gestión de Equipos MikroTik</h2>
-                        <p class="text-sm text-slate-400">Administración individual, comandos y respaldos</p>
+                        <h2 class="text-2xl font-bold text-white">Flota de Equipos MikroTik</h2>
+                        <p class="text-sm text-slate-400">Control individual, toma de respaldos, reinicios y terminal remoto</p>
                     </div>
                     <button onclick="openAddRouterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
                         <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Router
@@ -177,9 +180,9 @@
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-2xl font-bold text-white">Respaldos de Configuración (.rsc)</h2>
-                        <p class="text-sm text-slate-400">Gestión de exports, descargas y visor de diferencias (Diff)</p>
+                        <p class="text-sm text-slate-400">Exports completos de configuración, visor de código y descargas</p>
                     </div>
-                    <div class="flex gap-3">
+                    <div class="flex items-center gap-3">
                         <select id="backup-router-select" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
                             <!-- Select options filled dynamically -->
                         </select>
@@ -195,9 +198,9 @@
                             <thead class="text-xs uppercase text-slate-400 border-b border-slate-800">
                                 <tr>
                                     <th class="py-3 px-4">Archivo</th>
-                                    <th class="py-3 px-4">Router ID</th>
+                                    <th class="py-3 px-4">Router</th>
                                     <th class="py-3 px-4">Tamaño</th>
-                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Fecha y Hora</th>
                                     <th class="py-3 px-4">Acciones</th>
                                 </tr>
                             </thead>
@@ -212,8 +215,8 @@
             <!-- TAB 4: BATCH TASKS SCHEDULER -->
             <section id="tab-tasks" class="tab-content hidden">
                 <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-white">Ejecutor Masivo de Scripts (Cloutik Task Scheduler)</h2>
-                    <p class="text-sm text-slate-400">Envío simultáneo de comandos RouterOS a 1 o múltiples routers</p>
+                    <h2 class="text-2xl font-bold text-white">Ejecutor Masivo de Scripts (Task Scheduler)</h2>
+                    <p class="text-sm text-slate-400">Envío de comandos RouterOS a 1 o múltiples routers simultáneamente</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -232,7 +235,8 @@
                                     <option value="dns">Configurar DNS Primarios (1.1.1.1, 8.8.8.8)</option>
                                     <option value="reboot">Reiniciar Router (/system reboot)</option>
                                     <option value="export">Tomar Backup Export (.rsc)</option>
-                                    <option value="firewall">Agregar Regla Dropped Port 23 (Telnet)</option>
+                                    <option value="winbox_secure">Proteger WinBox contra Fuerza Bruta</option>
+                                    <option value="drop_telnet">Deshabilitar Telnet (23) y FTP (21)</option>
                                 </select>
                             </div>
                             <div>
@@ -260,7 +264,38 @@
                 </div>
             </section>
 
-            <!-- TAB 5: FIRMWARE -->
+            <!-- TAB 5: SECURITY & HARDENING -->
+            <section id="tab-security" class="tab-content hidden">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white">Seguridad y Hardening de MikroTik</h2>
+                    <p class="text-sm text-slate-400">Protección recomendada para clientes e ISPs contra ciberataques comunes</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                        <div class="w-10 h-10 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center mb-4"><i data-lucide="shield-alert" class="w-5 h-5"></i></div>
+                        <h3 class="font-bold text-white text-base mb-2">Anti Fuerza Bruta WinBox</h3>
+                        <p class="text-xs text-slate-400 mb-4">Añade a una lista negra temporal a cualquier IP que falle 3 intentos de login consecutivos en WinBox (puerto 8291).</p>
+                        <button onclick="applySecurityPreset('winbox')" class="w-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-amber-400 transition">Aplicar Regla a la Flota</button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                        <div class="w-10 h-10 bg-rose-500/10 text-rose-400 rounded-xl flex items-center justify-center mb-4"><i data-lucide="lock" class="w-5 h-5"></i></div>
+                        <h3 class="font-bold text-white text-base mb-2">Deshabilitar Puertos Inseguros</h3>
+                        <p class="text-xs text-slate-400 mb-4">Deshabilita los servicios sin cifrar: Telnet (puerto 23) y FTP (puerto 21) para cerrar vectores de ataque.</p>
+                        <button onclick="applySecurityPreset('services')" class="w-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-rose-400 transition">Deshabilitar Telnet/FTP</button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                        <div class="w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center mb-4"><i data-lucide="globe" class="w-5 h-5"></i></div>
+                        <h3 class="font-bold text-white text-base mb-2">Protección DNS Open Resolver</h3>
+                        <p class="text-xs text-slate-400 mb-4">Bloquea peticiones DNS entrantes desde la interfaz WAN para evitar que tu router sea usado en ataques DDoS de amplificación.</p>
+                        <button onclick="applySecurityPreset('dns')" class="w-full bg-slate-800 hover:bg-slate-700 text-xs font-semibold py-2 rounded-lg text-indigo-400 transition">Bloquear DNS WAN</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: FIRMWARE -->
             <section id="tab-firmware" class="tab-content hidden">
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-white">Gestión y Actualización de Firmware</h2>
@@ -319,12 +354,44 @@
 
     <!-- VIEW BACKUP RSC MODAL -->
     <div id="view-backup-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="backup-modal-title" class="text-lg font-bold text-white">Contenido del Respaldo (.rsc)</h3>
-                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-4xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="file-code" class="w-5 h-5"></i></div>
+                    <h3 id="backup-modal-title" class="text-base font-bold text-white">Contenido del Respaldo (.rsc)</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="copyBackupModalContent()" class="bg-slate-800 hover:bg-slate-700 text-xs text-indigo-400 px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código
+                    </button>
+                    <button onclick="closeBackupModal()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
             </div>
-            <pre id="backup-modal-content" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-emerald-400 overflow-y-auto whitespace-pre-wrap leading-relaxed"></pre>
+            <pre id="backup-modal-content" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-emerald-400 overflow-y-auto whitespace-pre-wrap leading-relaxed select-all"></pre>
+        </div>
+    </div>
+
+    <!-- TERMINAL / REMOTE COMMAND MODAL -->
+    <div id="command-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h3 id="cmd-modal-title" class="text-base font-bold text-white">Terminal Remoto MikroTik</h3>
+                <button onclick="closeCommandModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Comando RouterOS a Ejecutar</label>
+                    <input id="cmd-modal-input" type="text" placeholder="/ip address print" class="w-full font-mono bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-xs text-emerald-400 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div id="cmd-output-container" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Resultado:</label>
+                    <pre id="cmd-modal-output" class="bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-300 max-h-48 overflow-y-auto whitespace-pre-wrap"></pre>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeCommandModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cerrar</button>
+                    <button type="button" onclick="submitRouterCommand()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-semibold">Enviar Comando</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -333,6 +400,7 @@
         const API_BASE = "/api/v1";
         let token = localStorage.getItem("mt_auth_token");
         let globalRouters = [];
+        let currentCommandRouterId = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
@@ -380,7 +448,9 @@
 
         function switchTab(tabId) {
             document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-            document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove("hidden");
+
             if (tabId === 'dashboard') loadDashboardData();
             if (tabId === 'routers') loadRoutersData();
             if (tabId === 'backups') loadBackupsData();
@@ -431,7 +501,7 @@
                             </div>
                         </td>
                         <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.routeros_version || 'v7.x'}</td>
-                        <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.serial_number || 'N/A'}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.serial_number || 'N/A'} <span class="text-[10px] text-slate-500">(${r.host || 'Dynamic'})</span></td>
                         <td class="py-3.5 px-4 text-xs text-slate-500">${r.last_seen ? new Date(r.last_seen).toLocaleString() : 'Nunca'}</td>
                     </tr>
                 `).join('');
@@ -447,28 +517,46 @@
             const grid = document.getElementById("routers-grid");
             
             grid.innerHTML = routers.map(r => `
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="font-bold text-white text-base">${r.name}</h3>
-                            <p class="text-xs text-slate-400">${r.model_name || 'MikroTik RouterOS'}</p>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-white text-base">${r.name}</h3>
+                                <p class="text-xs text-slate-400">${r.model_name || 'MikroTik RouterOS'} · IP: <span class="font-mono text-indigo-400">${r.host || 'LAN/NAT'}</span></p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${r.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">${r.status}</span>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${r.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">${r.status}</span>
+
+                        <div class="space-y-2 mb-6 text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-850">
+                            <div class="flex justify-between text-slate-400"><span>Serie:</span> <span class="text-slate-200 font-mono">${r.serial_number || 'N/A'}</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Versión:</span> <span class="text-slate-200 font-mono">${r.routeros_version || 'v7.x'}</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Carga CPU:</span> <span class="text-slate-200 font-semibold">${r.cpu_load}%</span></div>
+                            <div class="flex justify-between text-slate-400"><span>RAM Usada:</span> <span class="text-slate-200">${r.memory_used_mb || 0} / ${r.memory_total_mb || 0} MB</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Uptime:</span> <span class="text-slate-200 font-mono">${r.uptime || 'N/A'}</span></div>
+                        </div>
                     </div>
 
-                    <div class="space-y-2 mb-6 text-xs">
-                        <div class="flex justify-between text-slate-400"><span>Serie:</span> <span class="text-slate-200 font-mono">${r.serial_number || 'N/A'}</span></div>
-                        <div class="flex justify-between text-slate-400"><span>Versión:</span> <span class="text-slate-200 font-mono">${r.routeros_version || 'v7.x'}</span></div>
-                        <div class="flex justify-between text-slate-400"><span>Carga CPU:</span> <span class="text-slate-200 font-semibold">${r.cpu_load}%</span></div>
-                        <div class="flex justify-between text-slate-400"><span>Uptime:</span> <span class="text-slate-200 font-mono">${r.uptime || 'N/A'}</span></div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="triggerBackupNow(${r.id}, '${r.name}')" class="bg-emerald-600/20 hover:bg-emerald-600/40 text-xs font-semibold py-2 rounded-lg text-emerald-400 transition">⚡ Tomar Respaldo</button>
-                        <button onclick="triggerTaskForRouter('${r.id}', '${r.name}')" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-xs font-semibold py-2 rounded-lg text-indigo-300 transition">Ejecutar Script</button>
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="triggerBackupNow(${r.id}, '${r.name}')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold py-2 rounded-lg flex items-center justify-center gap-1 transition">
+                                <i data-lucide="database" class="w-3.5 h-3.5"></i> ⚡ Respaldo
+                            </button>
+                            <button onclick="openCommandModal(${r.id}, '${r.name}')" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold py-2 rounded-lg flex items-center justify-center gap-1 transition">
+                                <i data-lucide="terminal" class="w-3.5 h-3.5"></i> Comando
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="rebootRouterPrompt(${r.id}, '${r.name}')" class="bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reiniciar
+                            </button>
+                            <button onclick="getCmdForRouter(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold py-1.5 rounded-lg transition">
+                                Script Agent
+                            </button>
+                        </div>
                     </div>
                 </div>
             `).join('');
+            lucide.createIcons();
         }
 
         async function loadBackupsData() {
@@ -480,39 +568,48 @@
             const routers = await resR.json();
             globalRouters = routers;
 
-            // Populate backup select
             const select = document.getElementById("backup-router-select");
             select.innerHTML = routers.map(r => `<option value="${r.id}">${r.name} (${r.model_name || 'MikroTik'})</option>`).join('');
 
             const tbody = document.getElementById("backups-list-table");
-            
             if (!Array.isArray(backups) || backups.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay respaldos guardados todavía. Usa el botón "⚡ Tomar Respaldo Ahora" para generar uno.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay respaldos guardados todavía. Selecciona un router y presiona "⚡ Tomar Respaldo Ahora".</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = backups.map(b => `
+            tbody.innerHTML = backups.map(b => {
+                const rObj = routers.find(x => x.id === b.router_id);
+                const rName = rObj ? rObj.name : `Router #${b.router_id}`;
+                return `
                 <tr class="border-b border-slate-800/50 hover:bg-slate-800/30">
-                    <td class="py-3.5 px-4 font-mono text-xs text-white">${b.filename}</td>
-                    <td class="py-3.5 px-4 text-xs text-slate-400">Router #${b.router_id}</td>
+                    <td class="py-3.5 px-4 font-mono text-xs text-emerald-400 font-semibold">${b.filename}</td>
+                    <td class="py-3.5 px-4 text-xs text-white font-medium">${rName}</td>
                     <td class="py-3.5 px-4 text-xs text-slate-400">${(b.file_size / 1024).toFixed(1)} KB</td>
                     <td class="py-3.5 px-4 text-xs text-slate-500">${new Date(b.created_at).toLocaleString()}</td>
                     <td class="py-3.5 px-4 flex gap-2">
-                        <button onclick="viewBackupContent(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 rounded text-xs font-semibold">Ver .rsc</button>
-                        <a href="${API_BASE}/backups/${b.id}/download" download class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-semibold">Descargar</a>
+                        <button onclick="viewBackupContent(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 rounded text-xs font-semibold transition">Ver .rsc</button>
+                        <a href="${API_BASE}/backups/${b.id}/download" download class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-semibold transition">Descargar</a>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         async function triggerBackupNow(routerId, routerName) {
-            alert(`Iniciando generación de respaldo .rsc para: ${routerName}...`);
             const res = await fetch(`${API_BASE}/backups/trigger/${routerId}`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` }
             });
+            const data = await res.json();
             if (res.ok) {
-                alert(`¡Respaldo generado exitosamente para ${routerName}!`);
+                if (data.instant_command) {
+                    const promptText = `${data.message}\n\nSi deseas ejecutar el respaldo de forma INMEDIATA en Winbox sin esperar el ciclo de 60s, copia y corre este comando:\n\n${data.instant_command}`;
+                    if (confirm(promptText + "\n\n¿Deseas copiar el comando instantáneo al portapapeles?")) {
+                        navigator.clipboard.writeText(data.instant_command);
+                    }
+                } else {
+                    alert(`¡Respaldo procesado para ${routerName}!`);
+                }
                 switchTab('backups');
             } else {
                 alert("Error al solicitar el respaldo");
@@ -530,6 +627,42 @@
             await triggerBackupNow(routerId, name);
         }
 
+        async function rebootRouterPrompt(routerId, routerName) {
+            if (!confirm(`¿Estás seguro de que deseas reiniciar el equipo: ${routerName}?`)) return;
+            const res = await fetch(`${API_BASE}/routers/${routerId}/reboot`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            alert(data.message || "Comando de reinicio enviado.");
+        }
+
+        function openCommandModal(routerId, routerName) {
+            currentCommandRouterId = routerId;
+            document.getElementById("cmd-modal-title").innerText = `Terminal Remoto · ${routerName}`;
+            document.getElementById("cmd-modal-input").value = "";
+            document.getElementById("cmd-output-container").classList.add("hidden");
+            document.getElementById("command-modal").classList.remove("hidden");
+        }
+
+        function closeCommandModal() {
+            document.getElementById("command-modal").classList.add("hidden");
+            currentCommandRouterId = null;
+        }
+
+        async function submitRouterCommand() {
+            const cmd = document.getElementById("cmd-modal-input").value.trim();
+            if (!cmd) return;
+            const res = await fetch(`${API_BASE}/routers/${currentCommandRouterId}/command`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ command: cmd })
+            });
+            const data = await res.json();
+            document.getElementById("cmd-modal-output").innerText = data.output || data.message || "Comando ejecutado.";
+            document.getElementById("cmd-output-container").classList.remove("hidden");
+        }
+
         async function viewBackupContent(id, filename) {
             const res = await fetch(`${API_BASE}/backups/`, { headers: { Authorization: `Bearer ${token}` } });
             const backups = await res.json();
@@ -539,6 +672,12 @@
                 document.getElementById("backup-modal-content").innerText = b.content_rsc || "# Sin contenido guardado";
                 document.getElementById("view-backup-modal").classList.remove("hidden");
             }
+        }
+
+        function copyBackupModalContent() {
+            const text = document.getElementById("backup-modal-content").innerText;
+            navigator.clipboard.writeText(text);
+            alert("Código de configuración copiado al portapapeles.");
         }
 
         function closeBackupModal() {
@@ -553,8 +692,38 @@
                 textarea.value = "/system reboot";
             } else if (type === 'export') {
                 textarea.value = "/export hide-sensitive file=orchestrator_backup";
-            } else if (type === 'firewall') {
-                textarea.value = "/ip firewall filter add chain=input protocol=tcp dst-port=23 action=drop comment=\"Block Telnet Port 23\"";
+            } else if (type === 'winbox_secure') {
+                textarea.value = "/ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_blacklist action=drop comment=\"Drop Winbox Brute Force\"; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_stage2 action=add-src-to-address-list address-list=winbox_blacklist address-list-timeout=1d comment=\"Add to Blacklist\"; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_stage1 action=add-src-to-address-list address-list=winbox_stage2 address-list-timeout=1m; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new action=add-src-to-address-list address-list=winbox_stage1 address-list-timeout=1m;";
+            } else if (type === 'drop_telnet') {
+                textarea.value = "/ip service disable telnet; /ip service disable ftp;";
+            }
+        }
+
+        async function applySecurityPreset(type) {
+            let script = "";
+            let title = "";
+            if (type === 'winbox') {
+                title = "Hardening: Bloqueo Fuerza Bruta Winbox";
+                script = "/ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_blacklist action=drop comment=\"Drop Winbox Brute Force\"; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_stage2 action=add-src-to-address-list address-list=winbox_blacklist address-list-timeout=1d; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new src-address-list=winbox_stage1 action=add-src-to-address-list address-list=winbox_stage2 address-list-timeout=1m; /ip firewall filter add chain=input protocol=tcp dst-port=8291 connection-state=new action=add-src-to-address-list address-list=winbox_stage1 address-list-timeout=1m;";
+            } else if (type === 'services') {
+                title = "Hardening: Deshabilitar Telnet y FTP";
+                script = "/ip service disable telnet; /ip service disable ftp;";
+            } else if (type === 'dns') {
+                title = "Hardening: Bloquear DNS WAN (Anti Open Resolver)";
+                script = "/ip firewall filter add chain=input protocol=udp dst-port=53 in-interface-list=WAN action=drop comment=\"Drop WAN DNS\"; /ip firewall filter add chain=input protocol=tcp dst-port=53 in-interface-list=WAN action=drop comment=\"Drop WAN DNS TCP\";";
+            }
+
+            if (!confirm(`¿Deseas enviar la tarea de seguridad "${title}" a toda tu flota?`)) return;
+
+            const res = await fetch(`${API_BASE}/tasks/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ title, target_routers: "ALL", script_content: script })
+            });
+
+            if (res.ok) {
+                alert(`¡Reglas de seguridad enviadas a todos los routers!`);
+                switchTab('tasks');
             }
         }
 
@@ -646,12 +815,6 @@
             document.getElementById("onboarding-cmd-text").innerText = data.command;
             document.getElementById("onboarding-command-container").classList.remove("hidden");
             document.getElementById("add-router-modal").classList.remove("hidden");
-        }
-
-        function triggerTaskForRouter(id, name) {
-            switchTab('tasks');
-            document.getElementById("task-targets").value = id;
-            document.getElementById("task-title").value = `Ejecutar script en ${name}`;
         }
 
         function copyOnboardingCommand() {

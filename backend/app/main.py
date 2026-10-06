@@ -64,6 +64,22 @@ def startup_event():
                 db.commit()
                 logger.info(">>> Created default administrator: admin@mikrotik.cloud / admin123")
             db.close()
+
+            # Ensure newly added columns exist in table
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                for col_sql in [
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS pending_command TEXT;",
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_command_output TEXT;",
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS auto_backup_interval VARCHAR DEFAULT 'daily';",
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_backup_at TIMESTAMP;"
+                ]:
+                    try:
+                        conn.execute(text(col_sql))
+                        conn.commit()
+                    except Exception:
+                        pass
+
             db_connected = True
             logger.info(">>> Primary Database initialized successfully!")
             break

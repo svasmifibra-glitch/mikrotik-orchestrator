@@ -53,6 +53,12 @@ class Router(Base):
     tags = Column(String, nullable=True) # Comma-separated tags
     location = Column(String, nullable=True)
     
+    # Remote Management & Automation
+    pending_command = Column(Text, nullable=True) # Queued script or command for next poll
+    last_command_output = Column(Text, nullable=True) # Output from executed command
+    auto_backup_interval = Column(String, default="daily") # daily, weekly, disabled
+    last_backup_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

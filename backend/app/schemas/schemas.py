@@ -78,6 +78,10 @@ class RouterOut(BaseModel):
     group_name: str
     tags: Optional[str] = None
     location: Optional[str] = None
+    pending_command: Optional[str] = None
+    last_command_output: Optional[str] = None
+    auto_backup_interval: Optional[str] = "daily"
+    last_backup_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

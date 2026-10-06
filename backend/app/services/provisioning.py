@@ -7,14 +7,21 @@ def generate_onboarding_command(token: str, server_url: str = None) -> str:
     mode = "https" if base_url.startswith("https") else "http"
     return f'/tool fetch url="{script_url}" mode={mode} keep-result=yes dst-path="orchestrator_install.rsc"; /import orchestrator_install.rsc; /file remove orchestrator_install.rsc;'
 
+def generate_instant_backup_command(token: str, server_url: str = None) -> str:
+    """Returns 1-line RouterOS terminal command to immediately generate & upload backup"""
+    base_url = (server_url or settings.SERVER_HOST).rstrip('/')
+    upload_url = f"{base_url}/api/v1/agent/upload-backup?token={token}"
+    mode = "https" if base_url.startswith("https") else "http"
+    return f'/export file="orch_export" hide-sensitive; :delay 2s; /tool fetch url="{upload_url}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"; :delay 1s; /file remove [find name="orch_export.rsc"];'
+
 def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     """
     Generates the complete .rsc script that configures the MikroTik router
-    to periodically report metrics, run queued scripts, and perform backups.
+    to periodically report metrics, poll for tasks/commands, and execute backups.
     """
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
-    hb_url = f"{base_url}/api/v1/agent/heartbeat"
-    poll_seconds = settings.AGENT_POLL_INTERVAL
+    poll_url = f"{base_url}/api/v1/agent/poll"
+    poll_seconds = 60 # Polling every 60 seconds for fast response to cloud commands
     mode = "https" if base_url.startswith("https") else "http"
     
     script = f"""# =========================================================
@@ -32,7 +39,7 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
 # Create Main Agent Script
 /system script add name="orchestrator_agent" owner="admin" policy=read,write,policy,test,password,sniff,sensitive source={{
     :local token "{token}"
-    :local serverUrl "{hb_url}"
+    :local pollUrl "{poll_url}"
     
     # Collect System Metrics safely
     :local cpu 0
@@ -63,11 +70,21 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     :do {{ :set model [/system routerboard get model] }} on-error={{}}
     :if ($model = "") do={{ :set model "RouterOS" }}
 
-    # Send Heartbeat via 100% Clean URL (No spaces or special characters)
+    # Poll server: sends metrics AND downloads any queued command (.rsc)
     :do {{
-        /tool fetch url=($serverUrl . "?token=" . $token . "&cpu=" . $cpu . "&mem_used=" . $usedMem . "&mem_total=" . $totalMem . "&ros=" . $cleanRos . "&serial=" . $serial . "&model=" . $model) mode={mode} keep-result=no
+        /tool fetch url=($pollUrl . "?token=" . $token . "&cpu=" . $cpu . "&mem_used=" . $usedMem . "&mem_total=" . $totalMem . "&ros=" . $cleanRos . "&serial=" . $serial . "&model=" . $model) mode={mode} keep-result=yes dst-path="orch_task.rsc"
+        
+        :if ([/file find name="orch_task.rsc"] != "") do={{
+            :local sz [/file get orch_task.rsc size]
+            # If server sent actual script commands (more than # idle comment)
+            :if ($sz > 15) do={{
+                :log info "Orchestrator: Executing cloud task from platform..."
+                /import orch_task.rsc
+            }}
+            /file remove [find name="orch_task.rsc"]
+        }}
     }} on-error={{
-        :log error "Orchestrator Agent: Failed to connect to orchestrator server."
+        :log error "Orchestrator Agent: Polling connection failed."
     }}
 }}
 

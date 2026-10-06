@@ -5,7 +5,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.models.models import Router, Alert, Backup
+from app.models.models import Router, Alert, Backup, Task
 from app.services.provisioning import generate_routeros_agent_script
 
 logger = logging.getLogger("agent")
@@ -19,7 +19,6 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     if not r:
         raise HTTPException(status_code=404, detail="Invalid provision token")
     
-    # Priority: SERVER_HOST from environment, otherwise fallback to request URL
     if settings.SERVER_HOST and settings.SERVER_HOST != "http://localhost:8080":
         server_url = settings.SERVER_HOST.rstrip('/')
     else:
@@ -28,9 +27,13 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     rsc_content = generate_routeros_agent_script(token, server_url)
     return Response(content=rsc_content, media_type="text/plain")
 
-@router.api_route("/heartbeat", methods=["GET", "POST"])
-async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)):
-    """Universal endpoint accepting GET query params or POST JSON for 100% RouterOS compatibility"""
+@router.api_route("/poll", methods=["GET", "POST"])
+async def agent_poll(request: Request, db: Session = Depends(get_db)):
+    """
+    Bidirectional polling endpoint called every 60s by MikroTik agent.
+    1. Collects live telemetry (CPU, RAM, Uptime, Version, Serial).
+    2. Returns pending commands or backup tasks as RouterOS executable script.
+    """
     data = {}
     if request.method == "POST":
         try:
@@ -48,11 +51,10 @@ async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)
     if not r:
         raise HTTPException(status_code=404, detail="Unknown router token")
 
-    # Update state & last_seen
+    # Update telemetry
     r.status = "online"
     r.last_seen = datetime.utcnow()
 
-    # Extract metrics safely (supports GET keys 'cpu', 'ros', 'serial', etc.)
     cpu_val = data.get("cpu") or data.get("cpu_load")
     if cpu_val:
         try: r.cpu_load = float(cpu_val)
@@ -78,7 +80,8 @@ async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)
     if board_val: r.board_name = str(board_val)
 
     serial_val = data.get("serial") or data.get("serial_number")
-    if serial_val: r.serial_number = str(serial_val)
+    if serial_val and serial_val != "CHR" and serial_val != "NO_SERIAL":
+        r.serial_number = str(serial_val)
 
     model_val = data.get("model") or data.get("model_name")
     if model_val: r.model_name = str(model_val)
@@ -86,12 +89,112 @@ async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)
     uptime_val = data.get("uptime")
     if uptime_val: r.uptime = str(uptime_val)
 
-    # Auto-detect Public IP of remote router
+    # Detect IP
     client_ip = request.client.host if request.client else None
     if client_ip and client_ip != "127.0.0.1":
         r.host = client_ip
 
-    db.commit()
-    logger.info(f"Received heartbeat from router '{r.name}' (Serial: {r.serial_number or 'N/A'}, IP: {r.host})")
+    server_url = (settings.SERVER_HOST or str(request.base_url)).rstrip('/')
+    mode = "https" if server_url.startswith("https") else "http"
 
-    return {"status": "ok", "ack": True}
+    # Default idle response (small, won't trigger import)
+    task_script = "# idle\n"
+
+    # Check for pending tasks or commands
+    if r.pending_command:
+        cmd = r.pending_command.strip()
+        logger.info(f"Dispatching pending command to router '{r.name}': {cmd[:30]}...")
+
+        if cmd == "backup":
+            task_script = f"""# Automated backup task
+:log info "Orchestrator: Executing configuration backup export..."
+:do {{
+    /export file="orch_export" hide-sensitive
+    :delay 2s
+    /tool fetch url="{server_url}/api/v1/agent/upload-backup?token={token}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"
+    :delay 1s
+    /file remove [find name="orch_export.rsc"]
+    :log info "Orchestrator: Backup export successfully sent to cloud."
+}} on-error={{
+    :log error "Orchestrator: Backup export failed."
+}}
+"""
+            r.pending_command = None
+
+        elif cmd.startswith("script:"):
+            actual_script = cmd[7:]
+            task_script = f"""# Custom batch script task
+:log info "Orchestrator: Executing custom remote task..."
+:do {{
+    {actual_script}
+    :log info "Orchestrator: Remote task completed."
+}} on-error={{
+    :log error "Orchestrator: Remote task failed."
+}}
+"""
+            r.pending_command = None
+
+        elif cmd == "reboot":
+            task_script = """# Reboot command
+:log warning "Orchestrator: System reboot ordered from cloud platform..."
+:delay 2s
+/system reboot
+"""
+            r.pending_command = None
+
+        else:
+            task_script = f"""# Command execution
+:do {{
+    {cmd}
+}} on-error={{
+    :log error "Orchestrator: Command failed."
+}}
+"""
+            r.pending_command = None
+
+    db.commit()
+    return Response(content=task_script, media_type="text/plain")
+
+@router.post("/upload-backup")
+async def upload_backup(token: str, request: Request, db: Session = Depends(get_db)):
+    """Receives uploaded .rsc export from MikroTik router via /tool fetch upload=yes"""
+    r = db.query(Router).filter(Router.provision_token == token).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Unknown router token")
+
+    body_bytes = await request.body()
+    if not body_bytes or len(body_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Empty backup payload received")
+
+    content_str = body_bytes.decode('utf-8', errors='ignore')
+    clean_name = r.name.replace(' ', '_')
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    filename = f"backup_{clean_name}_{timestamp}.rsc"
+
+    # Save real backup into database
+    b = Backup(
+        router_id=r.id,
+        backup_type="rsc",
+        filename=filename,
+        file_size=len(body_bytes),
+        content_rsc=content_str,
+        created_at=datetime.utcnow()
+    )
+    db.add(b)
+
+    r.status = "online"
+    r.last_seen = datetime.utcnow()
+    r.last_backup_at = datetime.utcnow()
+
+    # Clean any pending backup command
+    if r.pending_command == "backup":
+        r.pending_command = None
+
+    db.commit()
+    logger.info(f"✅ Real backup saved for '{r.name}': {filename} ({len(body_bytes)} bytes)")
+    return {"status": "ok", "filename": filename, "size": len(body_bytes)}
+
+@router.api_route("/heartbeat", methods=["GET", "POST"])
+async def handle_agent_heartbeat(request: Request, db: Session = Depends(get_db)):
+    """Fallback legacy heartbeat endpoint (redirects to poll logic)"""
+    return await agent_poll(request, db)

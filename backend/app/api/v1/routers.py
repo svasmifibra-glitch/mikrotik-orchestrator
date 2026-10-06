@@ -117,6 +117,45 @@ async def sync_router_direct(router_id: int, db: Session = Depends(get_db), curr
         db.commit()
         raise HTTPException(status_code=504, detail=f"Could not connect via REST API: {res.get('message')}")
 
+@router.post("/{router_id}/reboot")
+async def reboot_router(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    r = db.query(Router).filter(Router.id == router_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+    
+    # Direct SSH reboot if reachable
+    if r.host and r.api_user and r.api_password:
+        MikroTikClient.execute_ssh_command(r.host, r.api_user or "admin", r.api_password or "", "/system reboot")
+        return {"status": "rebooting", "mode": "direct", "message": f"Comando de reinicio enviado directamente a {r.name}"}
+
+    # Queue for next agent poll
+    r.pending_command = "reboot"
+    db.commit()
+    return {"status": "queued", "mode": "agent", "message": f"Reinicio encolado para {r.name}. Se ejecutará en el próximo ciclo (máx 60s)."}
+
+@router.post("/{router_id}/command")
+async def execute_router_command(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    r = db.query(Router).filter(Router.id == router_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+    
+    command = payload.get("command", "").strip()
+    if not command:
+        raise HTTPException(status_code=400, detail="Command cannot be empty")
+
+    # If direct host available, execute immediately
+    if r.host and r.api_user and r.api_password:
+        res = MikroTikClient.execute_ssh_command(r.host, r.api_user or "admin", r.api_password or "", command)
+        output = res.get("output", "") or res.get("error", "")
+        r.last_command_output = output
+        db.commit()
+        return {"status": "executed", "output": output}
+
+    # Queue for agent
+    r.pending_command = f"script:{command}"
+    db.commit()
+    return {"status": "queued", "output": f"Comando encolado para el router. Se ejecutará en su próximo reporte (máx 60s)."}
+
 @router.delete("/{router_id}")
 def delete_router(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     r = db.query(Router).filter(Router.id == router_id).first()
