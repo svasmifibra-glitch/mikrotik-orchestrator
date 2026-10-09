@@ -72,6 +72,9 @@
                     <button onclick="switchTab('firmware')" id="nav-firmware" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
                         <i data-lucide="arrow-up-circle" class="w-4 h-4 text-indigo-400"></i> Firmware RouterOS
                     </button>
+                    <button onclick="switchTab('users')" id="nav-users" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
+                        <i data-lucide="users" class="w-4 h-4 text-sky-400"></i> Cuentas & Accesos
+                    </button>
                 </nav>
             </div>
 
@@ -437,6 +440,39 @@
                 </div>
             </section>
 
+            <!-- TAB 7: USERS & ACCESS MANAGEMENT -->
+            <section id="tab-users" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Gestión de Usuarios & Accesos</h2>
+                        <p class="text-sm text-slate-400">Control de cuentas de administrador, operadores y credenciales de acceso</p>
+                    </div>
+                    <button onclick="openCreateUserModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Crear Usuario
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="text-xs uppercase text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th class="py-3 px-4">Usuario / Nombre</th>
+                                    <th class="py-3 px-4">Correo Electrónico</th>
+                                    <th class="py-3 px-4">Rol</th>
+                                    <th class="py-3 px-4">Estado</th>
+                                    <th class="py-3 px-4">Fecha de Registro</th>
+                                    <th class="py-3 px-4">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-list-table">
+                                <tr><td colspan="6" class="py-6 text-center text-slate-500">Cargando usuarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -577,6 +613,53 @@
         </div>
     </div>
 
+    <!-- CREATE / EDIT USER MODAL -->
+    <div id="user-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="user-check" class="w-5 h-5"></i></div>
+                    <h3 id="user-modal-title" class="text-base font-bold text-white">Nuevo Usuario</h3>
+                </div>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveUser(event)" class="space-y-4">
+                <input type="hidden" id="user-modal-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre Completo</label>
+                    <input id="user-modal-fullname" type="text" placeholder="Ej: Juan Pérez" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Correo Electrónico (Login)</label>
+                    <input id="user-modal-email" type="email" placeholder="usuario@empresa.com" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Contraseña</label>
+                    <input id="user-modal-password" type="password" placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    <p id="user-modal-pass-hint" class="text-[10px] text-slate-500 mt-1 hidden">Dejar en blanco si no deseas cambiar la contraseña actual.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Rol / Permisos</label>
+                    <select id="user-modal-role" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="operator">Operador (Gestión de routers y respaldos)</option>
+                        <option value="viewer">Solo Lectura (Visualización)</option>
+                        <option value="admin">Administrador Total (Gestión de usuarios y sistema)</option>
+                    </select>
+                </div>
+                <div id="user-modal-status-container" class="hidden">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                        <input id="user-modal-active" type="checkbox" checked class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-0">
+                        Cuenta Activa (Permitir acceso)
+                    </label>
+                </div>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancelar</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-semibold">Guardar Cuenta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT APP LOGIC -->
     <script>
         const API_BASE = "/api/v1";
@@ -599,6 +682,7 @@
             lucide.createIcons();
             if (token) {
                 document.getElementById("login-modal").classList.add("hidden");
+                fetchCurrentUser();
                 loadDashboardData();
             }
         });
@@ -621,7 +705,7 @@
                     token = data.access_token;
                     localStorage.setItem("mt_auth_token", token);
                     document.getElementById("login-modal").classList.add("hidden");
-                    document.getElementById("user-display-email").innerText = email;
+                    await fetchCurrentUser();
                     loadDashboardData();
                 } else {
                     errDiv.innerText = data.detail || "Credenciales inválidas";
@@ -654,6 +738,32 @@
             if (tabId === 'onedrive') loadOneDriveData();
             if (tabId === 'tasks') loadTasksData();
             if (tabId === 'firmware') loadFirmwareData();
+            if (tabId === 'users') loadUsersData();
+        }
+
+        let currentUser = null;
+
+        async function fetchCurrentUser() {
+            try {
+                const res = await fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+                if (res.ok) {
+                    currentUser = await res.json();
+                    document.getElementById("user-display-email").innerText = currentUser.email;
+                    // If user is not admin, hide the Users navigation button
+                    const navUsers = document.getElementById("nav-users");
+                    if (navUsers) {
+                        if (currentUser.role !== 'admin') {
+                            navUsers.classList.add("hidden");
+                        } else {
+                            navUsers.classList.remove("hidden");
+                        }
+                    }
+                } else if (res.status === 401) {
+                    logout();
+                }
+            } catch (e) {
+                console.error("Error fetching current user:", e);
+            }
         }
 
         async function loadDashboardData() {
@@ -1267,6 +1377,182 @@
 
         function closeUnlinkModal() {
             document.getElementById("unlink-router-modal").classList.add("hidden");
+        }
+
+        // ================= USERS MANAGEMENT =================
+        let globalUsers = [];
+
+        async function loadUsersData() {
+            try {
+                const res = await fetch(`${API_BASE}/auth/users`, { headers: { Authorization: `Bearer ${token}` } });
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        alert("Solo los administradores tienen permiso para ver y gestionar usuarios.");
+                        switchTab('dashboard');
+                    }
+                    return;
+                }
+                const users = await res.json();
+                globalUsers = users;
+                const tbody = document.getElementById("users-list-table");
+
+                if (!Array.isArray(users) || users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No hay usuarios registrados.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => {
+                    const isSelf = currentUser && currentUser.id === u.id;
+                    const roleBadge = u.role === 'admin' 
+                        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">Administrador</span>'
+                        : (u.role === 'operator' 
+                            ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">Operador</span>'
+                            : '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-400">Lectura</span>');
+
+                    const statusBadge = u.is_active
+                        ? '<span class="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Activo</span>'
+                        : '<span class="text-xs text-rose-400 flex items-center gap-1 font-semibold"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Inactivo</span>';
+
+                    return `
+                    <tr class="border-b border-slate-800/50 hover:bg-slate-800/30">
+                        <td class="py-3.5 px-4 font-semibold text-white flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full bg-slate-800 text-indigo-400 border border-slate-700 flex items-center justify-center font-bold text-xs">
+                                ${(u.full_name || u.email).substring(0,2).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-white">${u.full_name || 'Sin nombre'}</p>
+                                ${isSelf ? '<span class="text-[10px] text-indigo-400 font-bold">(Tu cuenta en sesión)</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs font-mono text-slate-300">${u.email}</td>
+                        <td class="py-3.5 px-4">${roleBadge}</td>
+                        <td class="py-3.5 px-4">${statusBadge}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-500">${formatUtcDate(u.created_at)}</td>
+                        <td class="py-3.5 px-4 flex items-center gap-2">
+                            <button onclick="openEditUserModal(${u.id})" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 rounded text-xs font-semibold transition flex items-center gap-1">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Editar
+                            </button>
+                            ${!isSelf ? `
+                            <button onclick="deleteUserPrompt(${u.id}, '${u.email}')" class="px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 rounded text-xs font-semibold transition flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Eliminar
+                            </button>` : ''}
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            } catch (err) {
+                console.error("Error loading users:", err);
+            }
+        }
+
+        function openCreateUserModal() {
+            document.getElementById("user-modal-id").value = "";
+            document.getElementById("user-modal-title").innerText = "Crear Nuevo Usuario";
+            document.getElementById("user-modal-fullname").value = "";
+            document.getElementById("user-modal-email").value = "";
+            document.getElementById("user-modal-email").disabled = false;
+            document.getElementById("user-modal-password").value = "";
+            document.getElementById("user-modal-password").required = true;
+            document.getElementById("user-modal-pass-hint").classList.add("hidden");
+            document.getElementById("user-modal-role").value = "operator";
+            document.getElementById("user-modal-status-container").classList.add("hidden");
+            document.getElementById("user-modal").classList.remove("hidden");
+        }
+
+        function openEditUserModal(userId) {
+            const u = globalUsers.find(x => x.id === userId);
+            if (!u) return;
+            document.getElementById("user-modal-id").value = u.id;
+            document.getElementById("user-modal-title").innerText = `Editar Usuario · ${u.email}`;
+            document.getElementById("user-modal-fullname").value = u.full_name || "";
+            document.getElementById("user-modal-email").value = u.email;
+            document.getElementById("user-modal-email").disabled = true; // Email cannot be changed
+            document.getElementById("user-modal-password").value = "";
+            document.getElementById("user-modal-password").required = false;
+            document.getElementById("user-modal-pass-hint").classList.remove("hidden");
+            document.getElementById("user-modal-role").value = u.role || "operator";
+            document.getElementById("user-modal-active").checked = u.is_active;
+            document.getElementById("user-modal-status-container").classList.remove("hidden");
+            document.getElementById("user-modal").classList.remove("hidden");
+        }
+
+        function closeUserModal() {
+            document.getElementById("user-modal").classList.add("hidden");
+        }
+
+        async function handleSaveUser(e) {
+            e.preventDefault();
+            const userId = document.getElementById("user-modal-id").value;
+            const full_name = document.getElementById("user-modal-fullname").value.trim();
+            const email = document.getElementById("user-modal-email").value.trim();
+            const password = document.getElementById("user-modal-password").value.trim();
+            const role = document.getElementById("user-modal-role").value;
+            const is_active = document.getElementById("user-modal-active").checked;
+
+            try {
+                if (!userId) {
+                    // Create user
+                    if (!password) {
+                        alert("La contraseña es requerida para un nuevo usuario.");
+                        return;
+                    }
+                    const res = await fetch(`${API_BASE}/auth/users`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ email, password, full_name, role })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert(`¡Usuario ${data.email} creado con éxito!`);
+                        closeUserModal();
+                        loadUsersData();
+                    } else {
+                        alert("Error al crear usuario: " + (data.detail || "Error desconocido"));
+                    }
+                } else {
+                    // Update user
+                    const payload = { full_name, role, is_active };
+                    if (password) {
+                        payload.password = password;
+                    }
+                    const res = await fetch(`${API_BASE}/auth/users/${userId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert(`¡Usuario ${data.email} actualizado con éxito!`);
+                        closeUserModal();
+                        loadUsersData();
+                    } else {
+                        alert("Error al actualizar usuario: " + (data.detail || "Error desconocido"));
+                    }
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        }
+
+        async function deleteUserPrompt(userId, userEmail) {
+            if (!confirm(`⚠️ ELIMINAR USUARIO:\n\n¿Estás seguro de que deseas eliminar permanentemente la cuenta de:\n"${userEmail}"?\n\nEl usuario ya no podrá iniciar sesión en la plataforma.`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/users/${userId}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || "Usuario eliminado con éxito.");
+                    loadUsersData();
+                } else {
+                    alert("Error al eliminar usuario: " + (data.detail || "Error desconocido"));
+                }
+            } catch (err) {
+                alert("Error al conectar con el servidor: " + err.message);
+            }
         }
     </script>
 </body>

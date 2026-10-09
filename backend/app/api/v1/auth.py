@@ -94,3 +94,73 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.get("/users", response_model=list[UserOut])
+def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Lists all system users (requires admin role)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permisos insuficientes. Solo administradores pueden gestionar usuarios.")
+    return db.query(User).order_by(User.id.asc()).all()
+
+@router.post("/users", response_model=UserOut)
+def create_user_by_admin(user_in: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Creates a new user account with specified role (requires admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permisos insuficientes. Solo administradores pueden crear usuarios.")
+    
+    existing = db.query(User).filter(User.email == user_in.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="El correo ya se encuentra registrado.")
+
+    user = User(
+        email=user_in.email,
+        hashed_password=get_password_hash(user_in.password),
+        full_name=user_in.full_name or user_in.email.split("@")[0],
+        role=user_in.role or "operator",
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.put("/users/{user_id}", response_model=UserOut)
+def update_user(user_id: int, payload: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Updates user information, password or role (requires admin)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar usuarios.")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    if "full_name" in payload and payload["full_name"]:
+        user.full_name = payload["full_name"]
+    if "role" in payload and payload["role"]:
+        user.role = payload["role"]
+    if "is_active" in payload:
+        user.is_active = bool(payload["is_active"])
+    if "password" in payload and payload["password"]:
+        user.hashed_password = get_password_hash(payload["password"])
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Deletes a user account (cannot delete own admin account)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar usuarios.")
+    
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta de administrador en sesión.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    db.delete(user)
+    db.commit()
+    return {"status": "deleted", "message": f"Usuario {user.email} eliminado con éxito."}
+
