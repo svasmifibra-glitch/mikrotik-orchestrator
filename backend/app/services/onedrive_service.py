@@ -123,3 +123,40 @@ class OneDriveService:
 
         return {"deleted_local": deleted_local, "deleted_onedrive": deleted_onedrive}
 
+    @staticmethod
+    def prune_old_backups(db, router_id: int, max_backups: int = 5, folder: str = "MikroTik_Backups"):
+        """
+        Prunes the oldest backups if count exceeds max_backups.
+        Deletes from:
+        1. Local VPS disk
+        2. Microsoft OneDrive (via rclone deletefile)
+        3. Database records
+        """
+        from app.models.models import Backup, Router
+        if not max_backups or max_backups <= 0:
+            return []
+
+        router = db.query(Router).filter(Router.id == router_id).first()
+        router_name = router.name if router else f"Router_{router_id}"
+
+        # Fetch all backups for this router, sorted newest first
+        backups = db.query(Backup).filter(Backup.router_id == router_id).order_by(Backup.created_at.desc()).all()
+        if len(backups) <= max_backups:
+            return []
+
+        pruned = []
+        excess_backups = backups[max_backups:] # These are the oldest backups exceeding retention
+        logger.info(f"Pruning {len(excess_backups)} old backups for router '{router_name}' (Retention limit: {max_backups})")
+
+        for b in excess_backups:
+            try:
+                OneDriveService.delete_backup_files(router_name, b.filename, folder=folder)
+                db.delete(b)
+                pruned.append(b.filename)
+                logger.info(f"Purged expired backup: {b.filename}")
+            except Exception as e:
+                logger.error(f"Error purging backup {b.filename}: {e}")
+
+        db.commit()
+        return pruned
+

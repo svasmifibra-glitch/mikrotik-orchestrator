@@ -156,11 +156,78 @@ async def execute_router_command(router_id: int, payload: dict, db: Session = De
     db.commit()
     return {"status": "queued", "output": f"Comando encolado para el router. Se ejecutará en su próximo reporte (máx 60s)."}
 
-@router.delete("/{router_id}")
-def delete_router(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+from app.services.provisioning import generate_onboarding_command, generate_uninstall_command
+from app.services.onedrive_service import OneDriveService
+
+@router.put("/{router_id}/settings")
+def update_router_settings(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Updates auto-backup interval, retention limit, and polling interval"""
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Router not found")
+
+    if "auto_backup_interval" in payload:
+        r.auto_backup_interval = payload["auto_backup_interval"]
+    if "backup_retention_count" in payload:
+        try:
+            r.backup_retention_count = int(payload["backup_retention_count"])
+        except Exception:
+            pass
+    if "poll_interval_seconds" in payload:
+        try:
+            r.poll_interval_seconds = max(30, int(payload["poll_interval_seconds"]))
+        except Exception:
+            pass
+
+    db.commit()
+    db.refresh(r)
+    return {
+        "status": "updated",
+        "router_id": r.id,
+        "auto_backup_interval": r.auto_backup_interval,
+        "backup_retention_count": r.backup_retention_count,
+        "poll_interval_seconds": r.poll_interval_seconds
+    }
+
+@router.get("/{router_id}/uninstall-command")
+def get_router_uninstall_command(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Returns the RouterOS terminal script to cleanly uninstall and remove the orchestrator agent"""
+    r = db.query(Router).filter(Router.id == router_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+    
+    cmd = generate_uninstall_command()
+    return {
+        "router_id": r.id,
+        "router_name": r.name,
+        "command": cmd
+    }
+
+@router.delete("/{router_id}")
+def delete_router(router_id: int, queue_uninstall: bool = Query(True), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    r = db.query(Router).filter(Router.id == router_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+
+    uninstall_cmd = generate_uninstall_command()
+
+    # If the router has direct host SSH credentials, attempt to execute uninstall immediately
+    if r.host and r.api_user and r.api_password:
+        try:
+            MikroTikClient.execute_ssh_command(r.host, r.api_user or "admin", r.api_password or "", uninstall_cmd)
+        except Exception:
+            pass
+
+    # If router is online via agent, queue the uninstall script so it cleans itself on its final poll
+    if r.status == "online" and queue_uninstall:
+        # Enqueue uninstall command as pending script
+        r.pending_command = f"script:{uninstall_cmd}"
+        db.commit()
+
     db.delete(r)
     db.commit()
-    return {"status": "deleted"}
+    return {
+        "status": "deleted",
+        "uninstall_command": uninstall_cmd,
+        "message": f"Router '{r.name}' desvinculado de la plataforma."
+    }

@@ -511,6 +511,71 @@
             </div>
         </div>
     </div>
+    <!-- ROUTER SETTINGS & BACKUP POLICY MODAL -->
+    <div id="router-settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-sky-500/10 text-sky-400 rounded-lg"><i data-lucide="settings" class="w-5 h-5"></i></div>
+                    <h3 id="settings-modal-title" class="text-base font-bold text-white">Política de Respaldos & Frecuencia</h3>
+                </div>
+                <button onclick="closeRouterSettingsModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveRouterSettings(event)" class="space-y-4">
+                <input type="hidden" id="settings-router-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Frecuencia de Auto-Respaldo</label>
+                    <select id="settings-auto-backup" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="hourly">Cada 1 Hora (Crítico)</option>
+                        <option value="daily">Diario (Cada 24 horas - Recomendado)</option>
+                        <option value="weekly">Semanal (Cada 7 días)</option>
+                        <option value="monthly">Mensual (Cada 30 días)</option>
+                        <option value="disabled">Desactivado (Solo manual)</option>
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">El agente evaluará automáticamente si corresponde generar un nuevo respaldo al reportar.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Retención de Respaldos (Límite Máximo)</label>
+                    <input id="settings-retention-count" type="number" min="1" max="100" value="5" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    <p class="text-[11px] text-slate-500 mt-1">Al crearse un nuevo respaldo que supere este límite, los más antiguos se eliminarán automáticamente de la plataforma, el VPS y Microsoft OneDrive.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Intervalo de Polling del Agente (Segundos)</label>
+                    <input id="settings-poll-seconds" type="number" min="30" max="600" value="60" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    <p class="text-[11px] text-slate-500 mt-1">Frecuencia con que el MikroTik consulta tareas pendientes a la plataforma (mínimo 30s).</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeRouterSettingsModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancelar</button>
+                    <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2 rounded-lg text-xs font-semibold">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- UNINSTALL / DESVINCULAR ROUTER MODAL -->
+    <div id="unlink-router-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-rose-900/50 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex items-center gap-3 mb-4 text-rose-400">
+                <div class="p-2.5 bg-rose-500/10 rounded-xl"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                <h3 class="text-lg font-bold text-white">Desvincular Equipo MikroTik</h3>
+            </div>
+            <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                El equipo <span id="unlink-router-name" class="font-bold text-white"></span> ha sido eliminado de la plataforma. Si el equipo estaba conectado, se le ha enviado la orden de auto-limpieza.
+            </p>
+            <p class="text-xs text-slate-400 mb-2">Para asegurar la eliminación completa de scripts y schedulers en el router físico, puedes pegar este comando en el Terminal de Winbox:</p>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[11px] text-amber-300 break-all select-all mb-4" id="unlink-cmd-text">
+                /system scheduler remove [find name="orchestrator_poll"]; /system script remove [find name="orchestrator_agent"]; /file remove [find name="orch_task.rsc"]; /file remove [find name="orch_export.rsc"];
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="copyUnlinkCommand()" class="bg-slate-800 hover:bg-slate-700 text-indigo-400 px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando
+                </button>
+                <button onclick="closeUnlinkModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-semibold transition">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- JAVASCRIPT APP LOGIC -->
     <script>
@@ -654,6 +719,7 @@
                             <div class="flex justify-between text-slate-400"><span>Versión:</span> <span class="text-slate-200 font-mono">${r.routeros_version || 'v7.x'}</span></div>
                             <div class="flex justify-between text-slate-400"><span>Carga CPU:</span> <span class="text-slate-200 font-semibold">${r.cpu_load}%</span></div>
                             <div class="flex justify-between text-slate-400"><span>RAM Usada:</span> <span class="text-slate-200">${r.memory_used_mb || 0} / ${r.memory_total_mb || 0} MB</span></div>
+                            <div class="flex justify-between text-slate-400"><span>Auto-Respaldo:</span> <span class="text-indigo-400 font-semibold uppercase">${r.auto_backup_interval || 'daily'} (máx ${r.backup_retention_count || 5})</span></div>
                             <div class="flex justify-between text-slate-400"><span>Uptime:</span> <span class="text-slate-200 font-mono">${r.uptime || 'N/A'}</span></div>
                         </div>
                     </div>
@@ -668,11 +734,19 @@
                             </button>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick="rebootRouterPrompt(${r.id}, '${r.name}')" class="bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition">
-                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reiniciar
+                            <button onclick="openRouterSettingsModal(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 text-xs font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition" title="Configurar política de backups">
+                                <i data-lucide="settings" class="w-3.5 h-3.5"></i> Política
                             </button>
-                            <button onclick="getCmdForRouter(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold py-1.5 rounded-lg transition">
+                            <button onclick="getCmdForRouter(${r.id})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-1.5 rounded-lg transition">
                                 Script Agent
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                            <button onclick="rebootRouterPrompt(${r.id}, '${r.name}')" class="bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 text-[11px] font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reiniciar
+                            </button>
+                            <button onclick="unlinkRouterPrompt(${r.id}, '${r.name}')" class="bg-rose-950/40 hover:bg-rose-900/50 text-rose-400 border border-rose-800/40 text-[11px] font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1 transition" title="Desvincular y eliminar de la plataforma">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i> Desvincular
                             </button>
                         </div>
                     </div>
@@ -1108,6 +1182,80 @@
         }
         function closeAddRouterModal() {
             document.getElementById("add-router-modal").classList.add("hidden");
+        }
+
+        function openRouterSettingsModal(routerId) {
+            const r = globalRouters.find(x => x.id === routerId);
+            if (!r) return;
+            document.getElementById("settings-router-id").value = r.id;
+            document.getElementById("settings-modal-title").innerText = `Política de Respaldos · ${r.name}`;
+            document.getElementById("settings-auto-backup").value = r.auto_backup_interval || "daily";
+            document.getElementById("settings-retention-count").value = r.backup_retention_count || 5;
+            document.getElementById("settings-poll-seconds").value = r.poll_interval_seconds || 60;
+            document.getElementById("router-settings-modal").classList.remove("hidden");
+        }
+
+        function closeRouterSettingsModal() {
+            document.getElementById("router-settings-modal").classList.add("hidden");
+        }
+
+        async function handleSaveRouterSettings(e) {
+            e.preventDefault();
+            const routerId = document.getElementById("settings-router-id").value;
+            const auto_backup_interval = document.getElementById("settings-auto-backup").value;
+            const backup_retention_count = parseInt(document.getElementById("settings-retention-count").value) || 5;
+            const poll_interval_seconds = parseInt(document.getElementById("settings-poll-seconds").value) || 60;
+
+            try {
+                const res = await fetch(`${API_BASE}/routers/${routerId}/settings`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ auto_backup_interval, backup_retention_count, poll_interval_seconds })
+                });
+                if (res.ok) {
+                    alert("¡Configuración y política de respaldos guardadas con éxito!");
+                    closeRouterSettingsModal();
+                    loadRoutersData();
+                } else {
+                    alert("Error al guardar la configuración");
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        }
+
+        async function unlinkRouterPrompt(routerId, routerName) {
+            const confirmed = confirm(`⚠️ DESVINCULAR Y ELIMINAR EQUIPO:\n\n¿Estás seguro de que deseas eliminar y desvincular el router "${routerName}"?\n\n• Se desvinculará de la plataforma y de los reportes en vivo.\n• Se enviará la instrucción de limpieza al router para remover scripts y tareas.\n\n¿Deseas continuar?`);
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/routers/${routerId}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById("unlink-router-name").innerText = routerName;
+                    document.getElementById("unlink-cmd-text").innerText = data.uninstall_command || '/system scheduler remove [find name="orchestrator_poll"]; /system script remove [find name="orchestrator_agent"]; /file remove [find name="orch_task.rsc"]; /file remove [find name="orch_export.rsc"];';
+                    document.getElementById("unlink-router-modal").classList.remove("hidden");
+                    loadRoutersData();
+                    loadDashboardData();
+                } else {
+                    alert("Error al desvincular: " + (data.detail || "Error desconocido"));
+                }
+            } catch (err) {
+                alert("Error al contactar con el servidor: " + err.message);
+            }
+        }
+
+        function copyUnlinkCommand() {
+            const cmd = document.getElementById("unlink-cmd-text").innerText;
+            navigator.clipboard.writeText(cmd);
+            alert("Comando de desvinculación copiado al portapapeles.");
+        }
+
+        function closeUnlinkModal() {
+            document.getElementById("unlink-router-modal").classList.add("hidden");
         }
     </script>
 </body>

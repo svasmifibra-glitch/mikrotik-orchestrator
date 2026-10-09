@@ -52,6 +52,9 @@ class RouterUpdate(BaseModel):
     group_name: Optional[str] = None
     tags: Optional[str] = None
     location: Optional[str] = None
+    auto_backup_interval: Optional[str] = None
+    backup_retention_count: Optional[int] = None
+    poll_interval_seconds: Optional[int] = None
 
 class RouterOut(BaseModel):
     id: int
@@ -81,6 +84,8 @@ class RouterOut(BaseModel):
     pending_command: Optional[str] = None
     last_command_output: Optional[str] = None
     auto_backup_interval: Optional[str] = "daily"
+    backup_retention_count: Optional[int] = 5
+    poll_interval_seconds: Optional[int] = 60
     last_backup_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

@@ -11,16 +11,21 @@ def generate_instant_backup_command(token: str, server_url: str = None) -> str:
     """Returns 1-line RouterOS terminal command to immediately generate & upload backup"""
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
     upload_url = f"{base_url}/api/v1/agent/upload-backup?token={token}"
+    mode = "https" if base_url.startswith("https") else "http"
     return f'/file remove [find name="orch_export.rsc"]; :delay 1s; /export file="orch_export" hide-sensitive compact; :delay 4s; :local bContent [/file get [find name="orch_export.rsc"] contents]; /tool fetch url="{upload_url}" mode={mode} http-method=post http-data=$bContent http-header-field="Content-Type: text/plain"; :delay 2s; /file remove [find name="orch_export.rsc"]; :log info "Orchestrator: Backup export sent to cloud!"'
 
-def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
+def generate_uninstall_command() -> str:
+    """Returns 1-line RouterOS command to cleanly uninstall and remove all orchestrator artifacts"""
+    return '/system scheduler remove [find name="orchestrator_poll"]; /system script remove [find name="orchestrator_agent"]; /file remove [find name="orch_task.rsc"]; /file remove [find name="orch_export.rsc"]; :log info "MikroTik Cloud Orchestrator Agent successfully uninstalled!"'
+
+def generate_routeros_agent_script(token: str, server_url: str = None, poll_seconds: int = 60) -> str:
     """
     Generates the complete .rsc script that configures the MikroTik router
     to periodically report metrics, poll for tasks/commands, and execute backups.
     """
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
     poll_url = f"{base_url}/api/v1/agent/poll"
-    poll_seconds = 60 # Polling every 60 seconds for fast response to cloud commands
+    poll_seconds = max(30, poll_seconds) # Polling interval in seconds (default 60s)
     mode = "https" if base_url.startswith("https") else "http"
     
     script = f"""# =========================================================
@@ -30,6 +35,11 @@ def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
 # =========================================================
 
 :log info "Setting up MikroTik Cloud Orchestrator Agent..."
+
+# Silence periodic fetch download log spam while keeping error logs
+:do {{
+    /system logging add topics=fetch action=none comment="Orchestrator: Silence fetch poll spam"
+}} on-error={{}}
 
 # Remove old script and scheduler if exists
 /system scheduler remove [find name="orchestrator_poll"]

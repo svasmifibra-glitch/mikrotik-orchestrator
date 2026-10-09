@@ -56,7 +56,9 @@ class Router(Base):
     # Remote Management & Automation
     pending_command = Column(Text, nullable=True) # Queued script or command for next poll
     last_command_output = Column(Text, nullable=True) # Output from executed command
-    auto_backup_interval = Column(String, default="daily") # daily, weekly, disabled
+    auto_backup_interval = Column(String, default="daily") # daily, weekly, monthly, disabled
+    backup_retention_count = Column(Integer, default=5) # Number of backups to keep (oldest pruned)
+    poll_interval_seconds = Column(Integer, default=60) # Router poller interval in seconds
     last_backup_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

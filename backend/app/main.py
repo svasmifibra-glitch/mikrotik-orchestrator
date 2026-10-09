@@ -73,6 +73,8 @@ def startup_event():
                     "ALTER TABLE routers ADD COLUMN IF NOT EXISTS pending_command TEXT;",
                     "ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_command_output TEXT;",
                     "ALTER TABLE routers ADD COLUMN IF NOT EXISTS auto_backup_interval VARCHAR DEFAULT 'daily';",
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS backup_retention_count INTEGER DEFAULT 5;",
+                    "ALTER TABLE routers ADD COLUMN IF NOT EXISTS poll_interval_seconds INTEGER DEFAULT 60;",
                     "ALTER TABLE routers ADD COLUMN IF NOT EXISTS last_backup_at TIMESTAMP;"
                 ]:
                     try:

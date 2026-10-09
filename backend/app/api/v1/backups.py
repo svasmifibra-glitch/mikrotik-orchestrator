@@ -51,6 +51,9 @@ async def trigger_manual_backup(router_id: int, request: Request, db: Session = 
 
             try:
                 OneDriveService.save_physical_backup(r.name, b.filename, content)
+                retention_limit = r.backup_retention_count if r.backup_retention_count is not None else 5
+                OneDriveService.prune_old_backups(db, r.id, max_backups=retention_limit)
+                OneDriveService.run_rclone_sync()
             except Exception:
                 pass
 

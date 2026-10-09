@@ -33,7 +33,8 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
         raise HTTPException(status_code=404, detail="Invalid provision token")
     
     server_url = get_server_url(request)
-    rsc_content = generate_routeros_agent_script(token, server_url)
+    poll_sec = r.poll_interval_seconds if (r.poll_interval_seconds and r.poll_interval_seconds >= 30) else 60
+    rsc_content = generate_routeros_agent_script(token, server_url, poll_seconds=poll_sec)
     return Response(content=rsc_content, media_type="text/plain")
 
 @router.api_route("/poll", methods=["GET", "POST"])
@@ -105,6 +106,27 @@ async def agent_poll(request: Request, db: Session = Depends(get_db)):
 
     server_url = get_server_url(request)
     mode = "https" if server_url.startswith("https") else "http"
+
+    # Check Automatic Backup Policy
+    if not r.pending_command and r.auto_backup_interval and r.auto_backup_interval != "disabled":
+        should_backup = False
+        now = datetime.utcnow()
+        if not r.last_backup_at:
+            should_backup = True
+        else:
+            diff_sec = (now - r.last_backup_at).total_seconds()
+            if r.auto_backup_interval == "hourly" and diff_sec >= 3600:
+                should_backup = True
+            elif r.auto_backup_interval == "daily" and diff_sec >= 86400:
+                should_backup = True
+            elif r.auto_backup_interval == "weekly" and diff_sec >= 604800:
+                should_backup = True
+            elif r.auto_backup_interval == "monthly" and diff_sec >= 2592000:
+                should_backup = True
+
+        if should_backup:
+            logger.info(f"Auto-backup policy '{r.auto_backup_interval}' triggered for router '{r.name}'")
+            r.pending_command = "backup"
 
     # Default idle response (small, won't trigger import)
     task_script = "# idle\n"
@@ -211,10 +233,13 @@ async def upload_backup(request: Request, token: Optional[str] = None, db: Sessi
 
     try:
         OneDriveService.save_physical_backup(r.name, filename, content_str)
+        # Enforce backup retention policy (delete oldest backups if exceeding limit)
+        retention_limit = r.backup_retention_count if r.backup_retention_count is not None else 5
+        OneDriveService.prune_old_backups(db, r.id, max_backups=retention_limit)
         # Automatic cloud sync to OneDrive
         OneDriveService.run_rclone_sync()
     except Exception as e:
-        logger.error(f"Error saving physical backup or syncing for OneDrive: {e}")
+        logger.error(f"Error saving physical backup, pruning retention or syncing for OneDrive: {e}")
 
     return {"status": "ok", "filename": filename, "size": len(body_bytes)}
 
