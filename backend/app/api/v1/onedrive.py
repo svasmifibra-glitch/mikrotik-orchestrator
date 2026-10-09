@@ -33,15 +33,16 @@ def get_onedrive_status(db: Session = Depends(get_db), current_user = Depends(ge
     
     total_db_backups = db.query(Backup).count()
 
+    host_backup_dir = os.getenv("HOST_BACKUPS_DIR", "/opt/mikrotik-orchestrator/data/backups")
     return {
         "status": "ready",
-        "backup_storage_path": backup_dir,
+        "backup_storage_path": host_backup_dir,
         "physical_files_count": file_count,
         "total_backups_db": total_db_backups,
         "has_access_token": bool(onedrive_config["access_token"]),
         "has_webhook": bool(onedrive_config["webhook_url"]),
         "folder_name": onedrive_config["folder_name"],
-        "rclone_command": f"rclone sync {backup_dir} onedrive:{onedrive_config['folder_name']}"
+        "rclone_command": f"rclone sync {host_backup_dir} onedrive:{onedrive_config['folder_name']}"
     }
 
 @router.post("/settings")

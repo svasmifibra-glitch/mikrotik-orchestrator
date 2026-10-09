@@ -22,8 +22,10 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://mikrotik:mikrotik_secure_db_pass_2026@postgres:5432/mikrotik_orchestrator}
       - SECRET_KEY=${SECRET_KEY:-mikrotik_super_secret_jwt_key_change_me_in_production_2026}
       - SERVER_HOST=${SERVER_HOST:-http://localhost:8080}
+      - BACKUPS_DIR=/app/data/backups
     volumes:
       - ../data:/app/data
+      - ../data:/data
     ports:
       - "8000:8000"
     depends_on:

@@ -6,7 +6,15 @@ from datetime import datetime
 
 logger = logging.getLogger("onedrive_service")
 
-BACKUPS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "backups"))
+def get_default_backup_dir() -> str:
+    env_dir = os.getenv("BACKUPS_DIR")
+    if env_dir:
+        return env_dir
+    if os.path.exists("/app/data"):
+        return "/app/data/backups"
+    if os.path.exists("/data"):
+        return "/data/backups"
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "backups"))
 
 class OneDriveService:
     """
@@ -18,8 +26,9 @@ class OneDriveService:
 
     @staticmethod
     def get_backup_dir() -> str:
-        os.makedirs(BACKUPS_DIR, exist_ok=True)
-        return BACKUPS_DIR
+        d = get_default_backup_dir()
+        os.makedirs(d, exist_ok=True)
+        return d
 
     @staticmethod
     def save_physical_backup(router_name: str, filename: str, content: str) -> str:
