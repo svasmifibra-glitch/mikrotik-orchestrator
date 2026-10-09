@@ -82,16 +82,16 @@ def get_current_user_flexible(request: Request, token: Optional[str] = None, db:
     return user
 
 @router.post("/register", response_model=UserOut)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
+def register(user_in: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(require_roles("admin"))):
     db_user = db.query(User).filter(User.email == user_in.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="El correo ya se encuentra registrado")
     
     user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
-        role=user_in.role
+        role=user_in.role or "operator"
     )
     db.add(user)
     db.commit()

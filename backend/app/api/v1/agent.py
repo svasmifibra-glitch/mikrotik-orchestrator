@@ -204,8 +204,12 @@ async def upload_backup(request: Request, token: Optional[str] = None, db: Sessi
     if not body_bytes or len(body_bytes) == 0:
         raise HTTPException(status_code=400, detail="Empty backup payload received")
 
+    # Safety limit: reject backups larger than 20MB to prevent DoS/memory exhaustion
+    if len(body_bytes) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Backup file exceeds maximum allowed size (20MB)")
+
     content_str = body_bytes.decode('utf-8', errors='ignore')
-    clean_name = r.name.replace(' ', '_')
+    clean_name = "".join(c for c in r.name if c.isalnum() or c in ('_', '-')).strip() or f"router_{r.id}"
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
     filename = f"backup_{clean_name}_{timestamp}.rsc"
 
