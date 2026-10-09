@@ -12,6 +12,7 @@ from app.services.mikrotik_client import MikroTikClient
 from app.services.provisioning import generate_instant_backup_command
 from app.services.onedrive_service import OneDriveService
 from app.api.v1.auth import get_current_user, get_current_user_flexible
+from app.api.v1.agent import get_server_url
 
 router = APIRouter(prefix="/backups", tags=["Backups"])
 
@@ -29,7 +30,7 @@ async def trigger_manual_backup(router_id: int, request: Request, db: Session = 
     if not r:
         raise HTTPException(status_code=404, detail="Router not found")
 
-    server_url = (settings.SERVER_HOST or str(request.base_url)).rstrip('/')
+    server_url = get_server_url(request)
 
     # If direct host credentials are configured, try immediate SSH pull
     if r.host and r.api_user and r.api_password:

@@ -1,6 +1,7 @@
 import os
 import httpx
 import logging
+import subprocess
 from typing import Dict, Any, Optional
 from datetime import datetime
 
@@ -75,3 +76,23 @@ class OneDriveService:
                 return {"success": response.status_code in (200, 201, 202), "status_code": response.status_code}
             except Exception as e:
                 return {"success": False, "message": str(e)}
+
+    @staticmethod
+    def run_rclone_sync(folder: str = "MikroTik_Backups") -> Dict[str, Any]:
+        """Runs rclone sync to upload local backups directly to OneDrive"""
+        backup_dir = OneDriveService.get_backup_dir()
+        try:
+            cmd = ["rclone", "sync", backup_dir, f"onedrive:{folder}", "-v"]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if res.returncode == 0:
+                logger.info(f"rclone sync succeeded: {res.stdout or res.stderr}")
+                return {"success": True, "output": (res.stdout or res.stderr).strip()}
+            else:
+                logger.warning(f"rclone sync returned code {res.returncode}: {res.stderr}")
+                return {"success": False, "error": res.stderr.strip() or f"Exit code {res.returncode}"}
+        except FileNotFoundError:
+            logger.info("rclone not found inside container; relying on host sync")
+            return {"success": False, "error": "rclone CLI not in container (los archivos se sincronizarán mediante cron del VPS)"}
+        except Exception as e:
+            logger.error(f"Error running rclone sync: {e}")
+            return {"success": False, "error": str(e)}

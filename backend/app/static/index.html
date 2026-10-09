@@ -846,7 +846,11 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert("¡Respaldo sincronizado exitosamente con OneDrive y guardado en disco!");
+                    let msg = "¡Respaldo guardado en el servidor!";
+                    if (data.details && data.details.rclone && data.details.rclone.success) {
+                        msg += "\n\n☁️ ¡Subido a tu OneDrive exitosamente!";
+                    }
+                    alert(msg);
                     loadOneDriveData();
                 } else {
                     alert("Error al sincronizar: " + (data.detail || "Error desconocido"));
@@ -864,7 +868,11 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(`¡${data.synced_count} respaldos sincronizados y volcados al disco/OneDrive con éxito!`);
+                    let msg = `¡${data.synced_count} respaldos volcados a disco!`;
+                    if (data.rclone && data.rclone.success) {
+                        msg += "\n\n☁️ ¡Sincronizado a OneDrive exitosamente!";
+                    }
+                    alert(msg);
                     loadOneDriveData();
                 } else {
                     alert("Error en la sincronización masiva: " + (data.detail || "Error desconocido"));

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
+from typing import Optional
 from datetime import datetime
 import logging
 
@@ -13,6 +14,17 @@ logger = logging.getLogger("agent")
 
 router = APIRouter(prefix="/agent", tags=["Agent RouterOS"])
 
+def get_server_url(request: Request) -> str:
+    """Accurately computes server URL taking into account reverse proxy Host & Port"""
+    if settings.SERVER_HOST and not settings.SERVER_HOST.startswith("http://localhost") and not settings.SERVER_HOST.startswith("http://127.0.0.1"):
+        return settings.SERVER_HOST.rstrip('/')
+    
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    proto = request.headers.get("x-forwarded-proto") or ("https" if request.url.is_secure else "http")
+    if host:
+        return f"{proto}://{host}".rstrip('/')
+    return str(request.base_url).rstrip('/')
+
 @router.get("/script/{token}")
 def get_agent_provision_script(token: str, request: Request, db: Session = Depends(get_db)):
     """Returns the .rsc setup script for MikroTik fetch command"""
@@ -20,11 +32,7 @@ def get_agent_provision_script(token: str, request: Request, db: Session = Depen
     if not r:
         raise HTTPException(status_code=404, detail="Invalid provision token")
     
-    if settings.SERVER_HOST and settings.SERVER_HOST != "http://localhost:8080":
-        server_url = settings.SERVER_HOST.rstrip('/')
-    else:
-        server_url = str(request.base_url).rstrip('/')
-
+    server_url = get_server_url(request)
     rsc_content = generate_routeros_agent_script(token, server_url)
     return Response(content=rsc_content, media_type="text/plain")
 
@@ -95,7 +103,7 @@ async def agent_poll(request: Request, db: Session = Depends(get_db)):
     if client_ip and client_ip != "127.0.0.1":
         r.host = client_ip
 
-    server_url = (settings.SERVER_HOST or str(request.base_url)).rstrip('/')
+    server_url = get_server_url(request)
     mode = "https" if server_url.startswith("https") else "http"
 
     # Default idle response (small, won't trigger import)
@@ -110,10 +118,12 @@ async def agent_poll(request: Request, db: Session = Depends(get_db)):
             task_script = f"""# Automated backup task
 :log info "Orchestrator: Executing configuration backup export..."
 :do {{
-    /export file="orch_export" hide-sensitive
-    :delay 2s
-    /tool fetch url="{server_url}/api/v1/agent/upload-backup?token={token}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"
+    /file remove [find name="orch_export.rsc"]
     :delay 1s
+    /export file="orch_export" hide-sensitive
+    :delay 4s
+    /tool fetch url="{server_url}/api/v1/agent/upload-backup?token={token}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"
+    :delay 2s
     /file remove [find name="orch_export.rsc"]
     :log info "Orchestrator: Backup export successfully sent to cloud."
 }} on-error={{
@@ -157,9 +167,13 @@ async def agent_poll(request: Request, db: Session = Depends(get_db)):
     return Response(content=task_script, media_type="text/plain")
 
 @router.post("/upload-backup")
-async def upload_backup(token: str, request: Request, db: Session = Depends(get_db)):
+async def upload_backup(request: Request, token: Optional[str] = None, db: Session = Depends(get_db)):
     """Receives uploaded .rsc export from MikroTik router via /tool fetch upload=yes"""
-    r = db.query(Router).filter(Router.provision_token == token).first()
+    token_val = token or request.query_params.get("token") or request.headers.get("x-router-token")
+    if not token_val:
+        raise HTTPException(status_code=400, detail="Missing router token")
+
+    r = db.query(Router).filter(Router.provision_token == token_val).first()
     if not r:
         raise HTTPException(status_code=404, detail="Unknown router token")
 
@@ -196,8 +210,10 @@ async def upload_backup(token: str, request: Request, db: Session = Depends(get_
 
     try:
         OneDriveService.save_physical_backup(r.name, filename, content_str)
+        # Automatic cloud sync to OneDrive
+        OneDriveService.run_rclone_sync()
     except Exception as e:
-        logger.error(f"Error saving physical backup for OneDrive: {e}")
+        logger.error(f"Error saving physical backup or syncing for OneDrive: {e}")
 
     return {"status": "ok", "filename": filename, "size": len(body_bytes)}
 

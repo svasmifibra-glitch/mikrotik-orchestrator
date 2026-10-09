@@ -26,6 +26,7 @@ services:
     volumes:
       - ../data:/app/data
       - ../data:/data
+      - /root/.config/rclone:/root/.config/rclone:ro
     ports:
       - "8000:8000"
     depends_on:

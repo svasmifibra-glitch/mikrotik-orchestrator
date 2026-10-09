@@ -94,11 +94,15 @@ async def sync_single_backup(backup_id: int, db: Session = Depends(get_db), curr
         )
         results["webhook"] = webhook_res
 
+    # 4. Trigger rclone sync directly
+    rclone_res = OneDriveService.run_rclone_sync(folder=onedrive_config["folder_name"])
+    results["rclone"] = rclone_res
+
     return {"status": "synced", "details": results}
 
 @router.post("/sync-all")
 async def sync_all_backups(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    """Exports all existing database backups to physical disk for OneDrive/rclone sync"""
+    """Exports all existing database backups to physical disk and triggers rclone sync to OneDrive"""
     backups = db.query(Backup).all()
     routers = {r.id: r.name for r in db.query(Router).all()}
     
@@ -125,10 +129,15 @@ async def sync_all_backups(db: Session = Depends(get_db), current_user = Depends
                 content=b.content_rsc or ""
             )
 
+    # Trigger rclone sync to upload all files to OneDrive
+    rclone_res = OneDriveService.run_rclone_sync(folder=onedrive_config["folder_name"])
+    host_backup_dir = os.getenv("HOST_BACKUPS_DIR", "/opt/mikrotik-orchestrator/data/backups")
+
     return {
         "status": "completed",
         "synced_count": synced_count,
-        "backup_storage_path": OneDriveService.get_backup_dir(),
+        "backup_storage_path": host_backup_dir,
+        "rclone": rclone_res,
         "files": saved_files
     }
 
