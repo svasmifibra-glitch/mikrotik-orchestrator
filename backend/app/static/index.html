@@ -43,10 +43,13 @@
         <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-4">
             <div>
                 <div class="flex items-center gap-3 px-2 py-3 mb-6 border-b border-slate-800">
-                    <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-lg text-white">⚡</div>
+                    <div id="brand-logo-container" class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-lg text-white overflow-hidden shadow-lg shadow-indigo-600/30">
+                        <span id="brand-logo-icon">⚡</span>
+                        <img id="brand-logo-img" src="" alt="Logo" class="w-full h-full object-contain hidden p-0.5">
+                    </div>
                     <div>
-                        <h1 class="font-bold text-sm text-white leading-tight">MikroTik Cloud</h1>
-                        <span class="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Orchestrator v2.0</span>
+                        <h1 id="brand-platform-title" class="font-bold text-sm text-white leading-tight">MikroTik Cloud</h1>
+                        <span id="brand-platform-subtitle" class="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Orchestrator v2.0</span>
                     </div>
                 </div>
 
@@ -74,6 +77,9 @@
                     </button>
                     <button onclick="switchTab('users')" id="nav-users" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
                         <i data-lucide="users" class="w-4 h-4 text-sky-400"></i> Cuentas & Accesos
+                    </button>
+                    <button onclick="switchTab('branding')" id="nav-branding" class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800 transition">
+                        <i data-lucide="palette" class="w-4 h-4 text-pink-400"></i> Personalización & Marca
                     </button>
                 </nav>
             </div>
@@ -473,6 +479,140 @@
                 </div>
             </section>
 
+            <!-- TAB 8: BRANDING & CUSTOMIZATION -->
+            <section id="tab-branding" class="tab-content hidden">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white">Personalización & Marca de la Plataforma</h2>
+                    <p class="text-sm text-slate-400">Configura el nombre de tu empresa, logotipo corporativo y paleta de colores para el panel</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Form Column -->
+                    <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <form onsubmit="handleSaveBranding(event)" class="space-y-6">
+                            <div>
+                                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                    <i data-lucide="type" class="w-4 h-4 text-pink-400"></i> Nombre e Identidad del Sistema
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Título de la Plataforma</label>
+                                        <input id="branding-title" type="text" placeholder="Ej: Mi ISP Cloud" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Subtítulo / Versión</label>
+                                        <input id="branding-subtitle" type="text" placeholder="Ej: Redes & Telecom" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-800">
+                                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                    <i data-lucide="image" class="w-4 h-4 text-indigo-400"></i> Logotipo
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-6">
+                                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                                            <input type="radio" name="branding-logo-type" value="icon" checked onchange="toggleLogoTypeInput()" class="text-indigo-600 focus:ring-0">
+                                            Ícono / Emoji
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                                            <input type="radio" name="branding-logo-type" value="image" onchange="toggleLogoTypeInput()" class="text-indigo-600 focus:ring-0">
+                                            URL de Imagen (PNG, SVG, JPG)
+                                        </label>
+                                    </div>
+
+                                    <div id="branding-icon-container">
+                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Ícono o Emoji</label>
+                                        <input id="branding-icon-input" type="text" value="⚡" maxlength="4" class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center text-lg text-white focus:outline-none focus:border-pink-500">
+                                        <span class="text-[11px] text-slate-500 ml-2">Puedes poner cualquier emoji: ⚡, 🌐, 🚀, 📡, 🏢, etc.</span>
+                                    </div>
+
+                                    <div id="branding-image-container" class="hidden">
+                                        <label class="block text-xs font-semibold text-slate-400 mb-1">URL Directa del Logotipo (HTTPS)</label>
+                                        <input id="branding-image-url" type="url" placeholder="https://miweb.com/logo.png" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
+                                        <p class="text-[11px] text-slate-500 mt-1">Ingresa el enlace directo a tu logo transparente (recomendado 128x128 o 256x256 píxeles).</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-800">
+                                <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                                    <i data-lucide="palette" class="w-4 h-4 text-emerald-400"></i> Paleta de Colores de la Plataforma
+                                </h3>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-indigo-500 transition">
+                                        <input type="radio" name="branding-theme" value="indigo" class="text-indigo-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-indigo-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Índigo Clásico</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-emerald-500 transition">
+                                        <input type="radio" name="branding-theme" value="emerald" class="text-emerald-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-emerald-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Esmeralda Pro</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-sky-500 transition">
+                                        <input type="radio" name="branding-theme" value="sky" class="text-sky-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-sky-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Cian / Azul Nube</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-purple-500 transition">
+                                        <input type="radio" name="branding-theme" value="purple" class="text-purple-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-purple-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Púrpura Deep</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-rose-500 transition">
+                                        <input type="radio" name="branding-theme" value="rose" class="text-rose-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-rose-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Rojo Rubí</span>
+                                    </label>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-amber-500 transition">
+                                        <input type="radio" name="branding-theme" value="amber" class="text-amber-600 focus:ring-0">
+                                        <div class="w-5 h-5 rounded-full bg-amber-600"></div>
+                                        <span class="text-xs text-slate-200 font-semibold">Ámbar Dorado</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Guardar y Aplicar Cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Live Preview Column -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                                <i data-lucide="eye" class="w-4 h-4 text-sky-400"></i> Vista Previa en Vivo
+                            </h3>
+                            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div id="preview-logo-box" class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl text-white overflow-hidden shadow-lg shadow-indigo-600/30">
+                                        <span id="preview-logo-icon">⚡</span>
+                                        <img id="preview-logo-img" src="" alt="Preview" class="w-full h-full object-contain hidden p-0.5">
+                                    </div>
+                                    <div>
+                                        <h4 id="preview-title" class="font-bold text-sm text-white leading-tight">MikroTik Cloud</h4>
+                                        <p id="preview-subtitle" class="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Orchestrator v2.0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Los cambios se guardan permanentemente en el servidor y se reflejan de inmediato para todos los administradores, operadores y lectores.
+                            </p>
+                        </div>
+                        <div class="pt-4 border-t border-slate-800">
+                            <button type="button" onclick="resetBrandingDefaults()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 rounded-xl transition">
+                                Restaurar Valores Predeterminados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -680,6 +820,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
+            fetchInitialBranding();
             if (token) {
                 document.getElementById("login-modal").classList.add("hidden");
                 fetchCurrentUser();
@@ -739,6 +880,7 @@
             if (tabId === 'tasks') loadTasksData();
             if (tabId === 'firmware') loadFirmwareData();
             if (tabId === 'users') loadUsersData();
+            if (tabId === 'branding') loadBrandingData();
         }
 
         let currentUser = null;
@@ -756,6 +898,7 @@
             const navSecurity = document.getElementById("nav-security");
             const navFirmware = document.getElementById("nav-firmware");
             const navUsers = document.getElementById("nav-users");
+            const navBranding = document.getElementById("nav-branding");
 
             // Update user profile display in sidebar
             const roleLabels = {
@@ -776,17 +919,17 @@
             }
 
             // Permissions by role:
-            // 1. admin: Has access to ALL tabs
+            // 1. admin: Has access to ALL tabs (including users & branding)
             // 2. operator: dashboard, flota (routers), respaldos (backups), ejecucion (tasks), firmware
             // 3. viewer: flota (routers) y respaldos (backups) ONLY (dashboard and others hidden)
             if (role === 'admin') {
-                [navDashboard, navRouters, navBackups, navOnedrive, navTasks, navSecurity, navFirmware, navUsers].forEach(el => el && el.classList.remove("hidden"));
+                [navDashboard, navRouters, navBackups, navOnedrive, navTasks, navSecurity, navFirmware, navUsers, navBranding].forEach(el => el && el.classList.remove("hidden"));
             } else if (role === 'operator') {
                 [navDashboard, navRouters, navBackups, navTasks, navFirmware].forEach(el => el && el.classList.remove("hidden"));
-                [navOnedrive, navSecurity, navUsers].forEach(el => el && el.classList.add("hidden"));
+                [navOnedrive, navSecurity, navUsers, navBranding].forEach(el => el && el.classList.add("hidden"));
             } else { // viewer (solo lectura)
                 [navRouters, navBackups].forEach(el => el && el.classList.remove("hidden"));
-                [navDashboard, navOnedrive, navTasks, navSecurity, navFirmware, navUsers].forEach(el => el && el.classList.add("hidden"));
+                [navDashboard, navOnedrive, navTasks, navSecurity, navFirmware, navUsers, navBranding].forEach(el => el && el.classList.add("hidden"));
             }
 
             // Hide or show top action buttons based on viewer role
@@ -1615,6 +1758,194 @@
                 }
             } catch (err) {
                 alert("Error al conectar con el servidor: " + err.message);
+            }
+        }
+
+        // ================= BRANDING & CUSTOMIZATION =================
+        let currentBranding = null;
+
+        const THEME_CLASSES = {
+            'indigo': { primary: 'bg-indigo-600', hover: 'hover:bg-indigo-500', text: 'text-indigo-400', shadow: 'shadow-indigo-600/30' },
+            'emerald': { primary: 'bg-emerald-600', hover: 'hover:bg-emerald-500', text: 'text-emerald-400', shadow: 'shadow-emerald-600/30' },
+            'sky': { primary: 'bg-sky-600', hover: 'hover:bg-sky-500', text: 'text-sky-400', shadow: 'shadow-sky-600/30' },
+            'purple': { primary: 'bg-purple-600', hover: 'hover:bg-purple-500', text: 'text-purple-400', shadow: 'shadow-purple-600/30' },
+            'rose': { primary: 'bg-rose-600', hover: 'hover:bg-rose-500', text: 'text-rose-400', shadow: 'shadow-rose-600/30' },
+            'amber': { primary: 'bg-amber-600', hover: 'hover:bg-amber-500', text: 'text-amber-400', shadow: 'shadow-amber-600/30' }
+        };
+
+        function applyBrandingToUI(b) {
+            if (!b) return;
+            currentBranding = b;
+
+            // Platform titles
+            if (b.platform_title) {
+                document.title = `${b.platform_title} - Orchestrator`;
+                const titleEl = document.getElementById("brand-platform-title");
+                if (titleEl) titleEl.innerText = b.platform_title;
+                const prevTitle = document.getElementById("preview-title");
+                if (prevTitle) prevTitle.innerText = b.platform_title;
+            }
+            if (b.platform_subtitle) {
+                const subEl = document.getElementById("brand-platform-subtitle");
+                if (subEl) subEl.innerText = b.platform_subtitle;
+                const prevSub = document.getElementById("preview-subtitle");
+                if (prevSub) prevSub.innerText = b.platform_subtitle;
+            }
+
+            // Logo icon or image
+            const logoType = b.logo_type || 'icon';
+            const iconChar = b.logo_icon || '⚡';
+            const imgUrl = b.logo_image_url || '';
+
+            const logoContainer = document.getElementById("brand-logo-container");
+            const logoIcon = document.getElementById("brand-logo-icon");
+            const logoImg = document.getElementById("brand-logo-img");
+
+            const prevBox = document.getElementById("preview-logo-box");
+            const prevIcon = document.getElementById("preview-logo-icon");
+            const prevImg = document.getElementById("preview-logo-img");
+
+            if (logoType === 'image' && imgUrl) {
+                if (logoIcon) logoIcon.classList.add("hidden");
+                if (logoImg) {
+                    logoImg.src = imgUrl;
+                    logoImg.classList.remove("hidden");
+                }
+                if (prevIcon) prevIcon.classList.add("hidden");
+                if (prevImg) {
+                    prevImg.src = imgUrl;
+                    prevImg.classList.remove("hidden");
+                }
+            } else {
+                if (logoImg) logoImg.classList.add("hidden");
+                if (logoIcon) {
+                    logoIcon.innerText = iconChar;
+                    logoIcon.classList.remove("hidden");
+                }
+                if (prevImg) prevImg.classList.add("hidden");
+                if (prevIcon) {
+                    prevIcon.innerText = iconChar;
+                    prevIcon.classList.remove("hidden");
+                }
+            }
+
+            // Theme color accents
+            const theme = b.theme_preset || 'indigo';
+            const cfg = THEME_CLASSES[theme] || THEME_CLASSES['indigo'];
+            if (logoContainer) {
+                logoContainer.className = `w-9 h-9 ${cfg.primary} rounded-xl flex items-center justify-center font-bold text-lg text-white overflow-hidden shadow-lg ${cfg.shadow}`;
+            }
+            if (prevBox) {
+                prevBox.className = `w-10 h-10 ${cfg.primary} rounded-xl flex items-center justify-center font-bold text-xl text-white overflow-hidden shadow-lg ${cfg.shadow}`;
+            }
+        }
+
+        async function fetchInitialBranding() {
+            try {
+                const res = await fetch(`${API_BASE}/settings/branding`);
+                if (res.ok) {
+                    const data = await res.json();
+                    applyBrandingToUI(data);
+                }
+            } catch (err) {
+                console.error("Error loading branding:", err);
+            }
+        }
+
+        function toggleLogoTypeInput() {
+            const logoType = document.querySelector('input[name="branding-logo-type"]:checked').value;
+            const iconDiv = document.getElementById("branding-icon-container");
+            const imgDiv = document.getElementById("branding-image-container");
+            if (logoType === 'image') {
+                iconDiv.classList.add("hidden");
+                imgDiv.classList.remove("hidden");
+            } else {
+                iconDiv.classList.remove("hidden");
+                imgDiv.classList.add("hidden");
+            }
+        }
+
+        async function loadBrandingData() {
+            try {
+                const res = await fetch(`${API_BASE}/settings/branding`);
+                const b = await res.json();
+                currentBranding = b;
+
+                document.getElementById("branding-title").value = b.platform_title || "MikroTik Cloud";
+                document.getElementById("branding-subtitle").value = b.platform_subtitle || "Orchestrator v2.0";
+                
+                const typeRadio = document.querySelector(`input[name="branding-logo-type"][value="${b.logo_type || 'icon'}"]`);
+                if (typeRadio) typeRadio.checked = true;
+                toggleLogoTypeInput();
+
+                document.getElementById("branding-icon-input").value = b.logo_icon || "⚡";
+                document.getElementById("branding-image-url").value = b.logo_image_url || "";
+
+                const themeRadio = document.querySelector(`input[name="branding-theme"][value="${b.theme_preset || 'indigo'}"]`);
+                if (themeRadio) themeRadio.checked = true;
+
+                applyBrandingToUI(b);
+            } catch (err) {
+                console.error("Error loading branding settings:", err);
+            }
+        }
+
+        async function handleSaveBranding(e) {
+            e.preventDefault();
+            const platform_title = document.getElementById("branding-title").value.trim();
+            const platform_subtitle = document.getElementById("branding-subtitle").value.trim();
+            const logo_type = document.querySelector('input[name="branding-logo-type"]:checked').value;
+            const logo_icon = document.getElementById("branding-icon-input").value.trim() || "⚡";
+            const logo_image_url = document.getElementById("branding-image-url").value.trim();
+            const theme_preset = document.querySelector('input[name="branding-theme"]:checked').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/settings/branding`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        platform_title,
+                        platform_subtitle,
+                        logo_type,
+                        logo_icon,
+                        logo_image_url,
+                        theme_preset
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert("¡Identidad corporativa y colores aplicados con éxito!");
+                    applyBrandingToUI(data.settings);
+                } else {
+                    alert("Error al guardar: " + (data.detail || "Error desconocido"));
+                }
+            } catch (err) {
+                alert("Error de conexión: " + err.message);
+            }
+        }
+
+        async function resetBrandingDefaults() {
+            if (!confirm("¿Deseas restaurar el logotipo, título y color por defecto?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/settings/branding`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        platform_title: "MikroTik Cloud",
+                        platform_subtitle: "Orchestrator v2.0",
+                        logo_type: "icon",
+                        logo_icon: "⚡",
+                        logo_image_url: "",
+                        theme_preset: "indigo"
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    loadBrandingData();
+                    alert("Configuración restaurada con éxito.");
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
             }
         }
     </script>
