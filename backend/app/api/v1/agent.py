@@ -120,9 +120,10 @@ async def agent_poll(request: Request, db: Session = Depends(get_db)):
 :do {{
     /file remove [find name="orch_export.rsc"]
     :delay 1s
-    /export file="orch_export" hide-sensitive
+    /export file="orch_export" hide-sensitive compact
     :delay 4s
-    /tool fetch url="{server_url}/api/v1/agent/upload-backup?token={token}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"
+    :local bContent [/file get [find name="orch_export.rsc"] contents]
+    /tool fetch url="{server_url}/api/v1/agent/upload-backup?token={token}" mode={mode} http-method=post http-data=$bContent http-header-field="Content-Type: text/plain"
     :delay 2s
     /file remove [find name="orch_export.rsc"]
     :log info "Orchestrator: Backup export successfully sent to cloud."

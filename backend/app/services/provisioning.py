@@ -11,8 +11,7 @@ def generate_instant_backup_command(token: str, server_url: str = None) -> str:
     """Returns 1-line RouterOS terminal command to immediately generate & upload backup"""
     base_url = (server_url or settings.SERVER_HOST).rstrip('/')
     upload_url = f"{base_url}/api/v1/agent/upload-backup?token={token}"
-    mode = "https" if base_url.startswith("https") else "http"
-    return f'/file remove [find name="orch_export.rsc"]; :delay 1s; /export file="orch_export" hide-sensitive; :delay 4s; /tool fetch url="{upload_url}" mode={mode} http-method=post upload=yes src-path="orch_export.rsc"; :delay 2s; /file remove [find name="orch_export.rsc"]; :log info "Orchestrator: Backup export sent to cloud!"'
+    return f'/file remove [find name="orch_export.rsc"]; :delay 1s; /export file="orch_export" hide-sensitive compact; :delay 4s; :local bContent [/file get [find name="orch_export.rsc"] contents]; /tool fetch url="{upload_url}" mode={mode} http-method=post http-data=$bContent http-header-field="Content-Type: text/plain"; :delay 2s; /file remove [find name="orch_export.rsc"]; :log info "Orchestrator: Backup export sent to cloud!"'
 
 def generate_routeros_agent_script(token: str, server_url: str = None) -> str:
     """
