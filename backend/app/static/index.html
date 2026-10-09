@@ -80,10 +80,10 @@
 
             <div class="border-t border-slate-800 pt-4 px-2 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400">ADM</div>
+                    <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400">ADM</div>
                     <div class="text-xs">
                         <p id="user-display-email" class="font-semibold text-white truncate max-w-[110px]">admin</p>
-                        <p class="text-slate-500 text-[10px]">Administrador</p>
+                        <p id="user-display-role" class="text-slate-500 text-[10px]">Administrador</p>
                     </div>
                 </div>
                 <button onclick="logout()" class="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition"><i data-lucide="log-out" class="w-4 h-4"></i></button>
@@ -171,7 +171,7 @@
                         <h2 class="text-2xl font-bold text-white">Flota de Equipos MikroTik</h2>
                         <p class="text-sm text-slate-400">Control individual, toma de respaldos, reinicios y terminal remoto</p>
                     </div>
-                    <button onclick="openAddRouterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
+                    <button onclick="openAddRouterModal()" class="action-btn bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition">
                         <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Router
                     </button>
                 </div>
@@ -189,13 +189,13 @@
                         <p class="text-sm text-slate-400">Exports completos de configuración, visor de código y descargas</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="syncAllToOneDrive()" class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                        <button onclick="syncAllToOneDrive()" class="action-btn bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
                             <i data-lucide="cloud" class="w-4 h-4"></i> ☁️ Sincronizar Todos a OneDrive
                         </button>
-                        <select id="backup-router-select" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                        <select id="backup-router-select" class="action-btn bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
                             <!-- Select options filled dynamically -->
                         </select>
-                        <button onclick="triggerSelectedBackup()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                        <button onclick="triggerSelectedBackup()" class="action-btn bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
                             <i data-lucide="database" class="w-4 h-4"></i> ⚡ Tomar Respaldo Ahora
                         </button>
                     </div>
@@ -639,11 +639,11 @@
                     <p id="user-modal-pass-hint" class="text-[10px] text-slate-500 mt-1 hidden">Dejar en blanco si no deseas cambiar la contraseña actual.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Rol / Permisos</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Rol / Perfil de Acceso</label>
                     <select id="user-modal-role" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-                        <option value="operator">Operador (Gestión de routers y respaldos)</option>
-                        <option value="viewer">Solo Lectura (Visualización)</option>
-                        <option value="admin">Administrador Total (Gestión de usuarios y sistema)</option>
+                        <option value="admin">Administrador General (Acceso total, usuarios y sistema)</option>
+                        <option value="operator">Operador (Dashboard, Flota, Respaldos, Ejecución y Firmware)</option>
+                        <option value="viewer">Solo Lectura (Visualización exclusiva de Flota y Respaldos)</option>
                     </select>
                 </div>
                 <div id="user-modal-status-container" class="hidden">
@@ -743,20 +743,73 @@
 
         let currentUser = null;
 
+        function applyRoleRestrictions() {
+            if (!currentUser) return;
+            const role = currentUser.role || 'viewer';
+
+            // Sidebar navigation buttons
+            const navDashboard = document.getElementById("nav-dashboard");
+            const navRouters = document.getElementById("nav-routers");
+            const navBackups = document.getElementById("nav-backups");
+            const navOnedrive = document.getElementById("nav-onedrive");
+            const navTasks = document.getElementById("nav-tasks");
+            const navSecurity = document.getElementById("nav-security");
+            const navFirmware = document.getElementById("nav-firmware");
+            const navUsers = document.getElementById("nav-users");
+
+            // Update user profile display in sidebar
+            const roleLabels = {
+                'admin': 'Administrador General',
+                'operator': 'Operador',
+                'viewer': 'Solo Lectura'
+            };
+            const roleBadges = {
+                'admin': 'ADM',
+                'operator': 'OPR',
+                'viewer': 'LEC'
+            };
+            if (document.getElementById("user-display-role")) {
+                document.getElementById("user-display-role").innerText = roleLabels[role] || role;
+            }
+            if (document.getElementById("user-avatar-badge")) {
+                document.getElementById("user-avatar-badge").innerText = roleBadges[role] || 'USR';
+            }
+
+            // Permissions by role:
+            // 1. admin: Has access to ALL tabs
+            // 2. operator: dashboard, flota (routers), respaldos (backups), ejecucion (tasks), firmware
+            // 3. viewer: flota (routers) y respaldos (backups) ONLY (dashboard and others hidden)
+            if (role === 'admin') {
+                [navDashboard, navRouters, navBackups, navOnedrive, navTasks, navSecurity, navFirmware, navUsers].forEach(el => el && el.classList.remove("hidden"));
+            } else if (role === 'operator') {
+                [navDashboard, navRouters, navBackups, navTasks, navFirmware].forEach(el => el && el.classList.remove("hidden"));
+                [navOnedrive, navSecurity, navUsers].forEach(el => el && el.classList.add("hidden"));
+            } else { // viewer (solo lectura)
+                [navRouters, navBackups].forEach(el => el && el.classList.remove("hidden"));
+                [navDashboard, navOnedrive, navTasks, navSecurity, navFirmware, navUsers].forEach(el => el && el.classList.add("hidden"));
+            }
+
+            // Hide or show top action buttons based on viewer role
+            document.querySelectorAll(".action-btn").forEach(btn => {
+                if (role === 'viewer') {
+                    btn.classList.add("hidden");
+                } else {
+                    btn.classList.remove("hidden");
+                }
+            });
+        }
+
         async function fetchCurrentUser() {
             try {
                 const res = await fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
                 if (res.ok) {
                     currentUser = await res.json();
                     document.getElementById("user-display-email").innerText = currentUser.email;
-                    // If user is not admin, hide the Users navigation button
-                    const navUsers = document.getElementById("nav-users");
-                    if (navUsers) {
-                        if (currentUser.role !== 'admin') {
-                            navUsers.classList.add("hidden");
-                        } else {
-                            navUsers.classList.remove("hidden");
-                        }
+                    applyRoleRestrictions();
+
+                    // If viewer, default open 'routers' tab instead of dashboard
+                    if (currentUser.role === 'viewer') {
+                        switchTab('routers');
                     }
                 } else if (res.status === 401) {
                     logout();
@@ -845,6 +898,13 @@
                         </div>
                     </div>
 
+                    ${currentUser && currentUser.role === 'viewer' ? `
+                    <div class="pt-2 text-center border-t border-slate-800/60">
+                        <span class="text-[11px] text-slate-500 italic flex items-center justify-center gap-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Perfil Solo Lectura (Sin acciones operativas)
+                        </span>
+                    </div>
+                    ` : `
                     <div class="space-y-2">
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="triggerBackupNow(${r.id}, '${r.name}')" class="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold py-2 rounded-lg flex items-center justify-center gap-1 transition">
@@ -871,6 +931,7 @@
                             </button>
                         </div>
                     </div>
+                    `}
                 </div>
             `).join('');
             lucide.createIcons();
@@ -908,12 +969,14 @@
                         <button onclick="downloadBackupFile(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-semibold transition flex items-center gap-1">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i> Descargar
                         </button>
+                        ${currentUser && currentUser.role !== 'viewer' ? `
                         <button onclick="syncBackupToOneDrive(${b.id})" class="px-2.5 py-1 bg-sky-600/20 text-sky-400 hover:bg-sky-600/30 rounded text-xs font-semibold transition flex items-center gap-1" title="Sincronizar a OneDrive">
                             <i data-lucide="cloud" class="w-3.5 h-3.5"></i> OneDrive
                         </button>
                         <button onclick="deleteBackupFile(${b.id}, '${b.filename}')" class="px-2 py-1 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 rounded text-xs font-semibold transition flex items-center gap-1" title="Eliminar de plataforma, VPS y OneDrive">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                         </button>
+                        ` : ''}
                     </td>
                 </tr>
                 `;
@@ -1404,10 +1467,10 @@
                 tbody.innerHTML = users.map(u => {
                     const isSelf = currentUser && currentUser.id === u.id;
                     const roleBadge = u.role === 'admin' 
-                        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">Administrador</span>'
+                        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">Administrador General</span>'
                         : (u.role === 'operator' 
                             ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">Operador</span>'
-                            : '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-400">Lectura</span>');
+                            : '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">Solo Lectura</span>');
 
                     const statusBadge = u.is_active
                         ? '<span class="text-xs text-emerald-400 flex items-center gap-1 font-semibold"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Activo</span>'

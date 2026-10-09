@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.models import Backup, Router
 from app.services.onedrive_service import OneDriveService
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/onedrive", tags=["OneDrive Sync"])
 
@@ -61,7 +61,7 @@ def save_onedrive_settings(config: OneDriveConfig, current_user = Depends(get_cu
     }}
 
 @router.post("/sync/{backup_id}")
-async def sync_single_backup(backup_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def sync_single_backup(backup_id: int, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     b = db.query(Backup).filter(Backup.id == backup_id).first()
     if not b:
         raise HTTPException(status_code=404, detail="Backup not found")
@@ -101,7 +101,7 @@ async def sync_single_backup(backup_id: int, db: Session = Depends(get_db), curr
     return {"status": "synced", "details": results}
 
 @router.post("/sync-all")
-async def sync_all_backups(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def sync_all_backups(db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     """Exports all existing database backups to physical disk and triggers rclone sync to OneDrive"""
     backups = db.query(Backup).all()
     routers = {r.id: r.name for r in db.query(Router).all()}

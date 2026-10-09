@@ -17,7 +17,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="No se pudieron validar las credenciales de acceso",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -31,7 +31,23 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta de usuario está desactivada. Contacta al administrador."
+        )
     return user
+
+def require_roles(*allowed_roles: str):
+    """Dependency factory ensuring current user has one of allowed roles"""
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permisos insuficientes. Tu rol '{current_user.role}' no tiene autorización para realizar esta acción."
+            )
+        return current_user
+    return role_checker
 
 def get_current_user_flexible(request: Request, token: Optional[str] = None, db: Session = Depends(get_db)) -> User:
     """Authenticates user via either Authorization Bearer header OR ?token= query parameter"""

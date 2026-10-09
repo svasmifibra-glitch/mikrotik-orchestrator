@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from app.core.database import get_db
 from app.models.models import Router, Task
 from app.services.task_runner import TaskRunnerService
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/firmware", tags=["Firmware Management"])
 
@@ -33,7 +33,7 @@ def get_firmware_summary(db: Session = Depends(get_db), current_user = Depends(g
     }
 
 @router.post("/batch-upgrade")
-def trigger_batch_upgrade(channel: str = "stable", db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def trigger_batch_upgrade(channel: str = "stable", db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     """Creates a batch task to trigger RouterOS auto-upgrade on targeted routers"""
     upgrade_script = f"""
 /system package update set channel={channel}

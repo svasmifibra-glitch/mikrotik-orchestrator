@@ -11,7 +11,7 @@ from app.schemas.schemas import BackupOut
 from app.services.mikrotik_client import MikroTikClient
 from app.services.provisioning import generate_instant_backup_command
 from app.services.onedrive_service import OneDriveService
-from app.api.v1.auth import get_current_user, get_current_user_flexible
+from app.api.v1.auth import get_current_user, get_current_user_flexible, require_roles
 from app.api.v1.agent import get_server_url
 
 router = APIRouter(prefix="/backups", tags=["Backups"])
@@ -24,7 +24,7 @@ def list_backups(router_id: Optional[int] = None, db: Session = Depends(get_db),
     return query.order_by(Backup.created_at.desc()).all()
 
 @router.post("/trigger/{router_id}")
-async def trigger_manual_backup(router_id: int, request: Request, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def trigger_manual_backup(router_id: int, request: Request, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     """Triggers an on-demand configuration backup for a MikroTik router"""
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
@@ -94,7 +94,7 @@ def download_backup(backup_id: int, request: Request, token: Optional[str] = Non
     )
 
 @router.delete("/{backup_id}")
-def delete_backup(backup_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def delete_backup(backup_id: int, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     b = db.query(Backup).filter(Backup.id == backup_id).first()
     if not b:
         raise HTTPException(status_code=404, detail="Backup not found")

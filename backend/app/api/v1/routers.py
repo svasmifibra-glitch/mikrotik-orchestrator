@@ -9,7 +9,7 @@ from app.models.models import Router
 from app.schemas.schemas import RouterCreate, RouterUpdate, RouterOut
 from app.services.provisioning import generate_onboarding_command
 from app.services.mikrotik_client import MikroTikClient
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/routers", tags=["Routers"])
 
@@ -36,7 +36,7 @@ def get_routers(
     return query.order_by(Router.updated_at.desc()).all()
 
 @router.post("/", response_model=RouterOut)
-def create_router(router_in: RouterCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def create_router(router_in: RouterCreate, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     provision_token = f"mt_{secrets.token_urlsafe(16)}"
     db_router = Router(
         name=router_in.name,
@@ -118,7 +118,7 @@ async def sync_router_direct(router_id: int, db: Session = Depends(get_db), curr
         raise HTTPException(status_code=504, detail=f"Could not connect via REST API: {res.get('message')}")
 
 @router.post("/{router_id}/reboot")
-async def reboot_router(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def reboot_router(router_id: int, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Router not found")
@@ -134,7 +134,7 @@ async def reboot_router(router_id: int, db: Session = Depends(get_db), current_u
     return {"status": "queued", "mode": "agent", "message": f"Reinicio encolado para {r.name}. Se ejecutará en el próximo ciclo (máx 60s)."}
 
 @router.post("/{router_id}/command")
-async def execute_router_command(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+async def execute_router_command(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Router not found")
@@ -160,7 +160,7 @@ from app.services.provisioning import generate_onboarding_command, generate_unin
 from app.services.onedrive_service import OneDriveService
 
 @router.put("/{router_id}/settings")
-def update_router_settings(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def update_router_settings(router_id: int, payload: dict, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     """Updates auto-backup interval, retention limit, and polling interval"""
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
@@ -190,7 +190,7 @@ def update_router_settings(router_id: int, payload: dict, db: Session = Depends(
     }
 
 @router.get("/{router_id}/uninstall-command")
-def get_router_uninstall_command(router_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_router_uninstall_command(router_id: int, db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     """Returns the RouterOS terminal script to cleanly uninstall and remove the orchestrator agent"""
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
@@ -204,7 +204,7 @@ def get_router_uninstall_command(router_id: int, db: Session = Depends(get_db), 
     }
 
 @router.delete("/{router_id}")
-def delete_router(router_id: int, queue_uninstall: bool = Query(True), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def delete_router(router_id: int, queue_uninstall: bool = Query(True), db: Session = Depends(get_db), current_user = Depends(require_roles("admin", "operator"))):
     r = db.query(Router).filter(Router.id == router_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Router not found")
