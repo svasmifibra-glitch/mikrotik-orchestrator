@@ -96,3 +96,30 @@ class OneDriveService:
         except Exception as e:
             logger.error(f"Error running rclone sync: {e}")
             return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def delete_backup_files(router_name: str, filename: str, folder: str = "MikroTik_Backups") -> Dict[str, Any]:
+        """Deletes backup from local VPS disk and Microsoft OneDrive"""
+        safe_name = "".join(c for c in router_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+        local_path = os.path.join(OneDriveService.get_backup_dir(), safe_name, filename)
+        deleted_local = False
+        if os.path.exists(local_path):
+            try:
+                os.remove(local_path)
+                deleted_local = True
+                logger.info(f"Deleted local backup file: {local_path}")
+            except Exception as e:
+                logger.error(f"Error deleting local backup: {e}")
+
+        deleted_onedrive = False
+        try:
+            remote_path = f"onedrive:{folder}/{safe_name}/{filename}"
+            res = subprocess.run(["rclone", "deletefile", remote_path], capture_output=True, text=True, timeout=30)
+            if res.returncode == 0:
+                deleted_onedrive = True
+                logger.info(f"Deleted backup from OneDrive: {remote_path}")
+        except Exception as e:
+            logger.error(f"Error deleting from OneDrive: {e}")
+
+        return {"deleted_local": deleted_local, "deleted_onedrive": deleted_onedrive}
+

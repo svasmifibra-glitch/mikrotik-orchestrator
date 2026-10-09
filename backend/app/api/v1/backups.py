@@ -95,9 +95,23 @@ def delete_backup(backup_id: int, db: Session = Depends(get_db), current_user = 
     b = db.query(Backup).filter(Backup.id == backup_id).first()
     if not b:
         raise HTTPException(status_code=404, detail="Backup not found")
+    
+    r = db.query(Router).filter(Router.id == b.router_id).first()
+    router_name = r.name if r else f"Router_{b.router_id}"
+    filename = b.filename
+
+    # Delete physical file on VPS disk and from OneDrive
+    file_status = OneDriveService.delete_backup_files(router_name, filename)
+
+    # Delete from database
     db.delete(b)
     db.commit()
-    return {"status": "deleted"}
+
+    return {
+        "status": "deleted",
+        "message": f"Respaldo '{filename}' eliminado de la plataforma, VPS y OneDrive.",
+        "details": file_status
+    }
 
 @router.get("/diff")
 def diff_backups(backup_a_id: int, backup_b_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
