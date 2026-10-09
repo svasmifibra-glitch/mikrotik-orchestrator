@@ -584,6 +584,17 @@
         let globalRouters = [];
         let currentCommandRouterId = null;
 
+        function formatUtcDate(dateStr) {
+            if (!dateStr) return "Nunca";
+            // Ensure date string has 'Z' if no timezone is present so the browser parses it as UTC
+            let iso = String(dateStr);
+            if (!iso.endsWith("Z") && !iso.includes("+") && !iso.includes("-", 11)) {
+                iso += "Z";
+            }
+            const d = new Date(iso);
+            return isNaN(d.getTime()) ? dateStr : d.toLocaleString();
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
             if (token) {
@@ -689,7 +700,7 @@
                         </td>
                         <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.routeros_version || 'v7.x'}</td>
                         <td class="py-3.5 px-4 text-xs text-slate-400 font-mono">${r.serial_number || 'N/A'} <span class="text-[10px] text-slate-500">(${r.host || 'Dynamic'})</span></td>
-                        <td class="py-3.5 px-4 text-xs text-slate-500">${r.last_seen ? new Date(r.last_seen).toLocaleString() : 'Nunca'}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-500">${formatUtcDate(r.last_seen)}</td>
                     </tr>
                 `).join('');
             } catch (err) {
@@ -781,7 +792,7 @@
                     <td class="py-3.5 px-4 font-mono text-xs text-emerald-400 font-semibold">${b.filename}</td>
                     <td class="py-3.5 px-4 text-xs text-white font-medium">${rName}</td>
                     <td class="py-3.5 px-4 text-xs text-slate-400">${(b.file_size / 1024).toFixed(1)} KB</td>
-                    <td class="py-3.5 px-4 text-xs text-slate-500">${new Date(b.created_at).toLocaleString()}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-500">${formatUtcDate(b.created_at)}</td>
                     <td class="py-3.5 px-4 flex items-center gap-2">
                         <button onclick="viewBackupContent(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/40 rounded text-xs font-semibold transition">Ver .rsc</button>
                         <button onclick="downloadBackupFile(${b.id}, '${b.filename}')" class="px-2.5 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-semibold transition flex items-center gap-1">
